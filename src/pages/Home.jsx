@@ -167,6 +167,22 @@ export default function Home() {
           </Card>
         </div>
       </main>
+
+      {/* Wait Message Overlay */}
+      {showWaitMessage && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Card className="bg-white/10 border-white/20 backdrop-blur-xl max-w-md mx-4">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Clock className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-xl text-white font-medium mb-4">{waitMessage}</p>
+              <div className="text-4xl font-bold text-cyan-400 mb-2">{countdown}</div>
+              <p className="text-slate-400 text-sm">seconds remaining</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
