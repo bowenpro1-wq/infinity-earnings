@@ -1,31 +1,40 @@
 import React, { useState } from 'react';
-import { Link2, Plus, Wallet, Settings, BarChart3, HelpCircle, Megaphone, Menu, X, Link } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Link as RouterLink } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { 
+  Link2, 
+  PlusCircle, 
+  Wallet, 
+  Settings, 
+  Megaphone, 
+  BarChart3, 
+  HelpCircle,
+  Menu,
+  X,
+  ChevronRight
+} from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
-export default function Sidebar({ currentPage, theme, onLogoClick }) {
+export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
-    { name: 'My Shortened Links', page: 'MyLinks', icon: Link },
-    { name: 'Shorten New Link', page: 'ShortenNew', icon: Plus },
-    { name: 'Withdraw Payments', page: 'Withdraw', icon: Wallet },
-    { name: 'Settings', page: 'Settings', icon: Settings },
-    { name: 'Request an Ad', page: 'RequestAd', icon: Megaphone },
-    { name: 'Statistics', page: 'Statistics', icon: BarChart3 },
-    { name: 'Help', page: 'Help', icon: HelpCircle },
+    { name: 'MyLinks', label: 'My Shortened Links', icon: Link2 },
+    { name: 'ShortenNew', label: 'Shorten New Link', icon: PlusCircle },
+    { name: 'Withdraw', label: 'Withdraw Payments', icon: Wallet },
+    { name: 'Settings', label: 'Settings', icon: Settings },
+    { name: 'RequestAd', label: 'Request an Ad', icon: Megaphone },
+    { name: 'Statistics', label: 'Statistics', icon: BarChart3 },
+    { name: 'Help', label: 'Help', icon: HelpCircle },
   ];
-
-  const isDark = theme === 'dark';
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile menu button */}
       <Button
         variant="ghost"
         size="icon"
-        className={`fixed top-4 left-4 z-50 lg:hidden ${isDark ? 'text-white' : 'text-slate-900'}`}
+        className="fixed top-4 left-4 z-50 lg:hidden text-white"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -33,52 +42,68 @@ export default function Sidebar({ currentPage, theme, onLogoClick }) {
 
       {/* Overlay */}
       {isOpen && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-0 h-full w-72 z-40 transform transition-transform duration-300 lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${isDark ? 'bg-slate-900 border-r border-slate-800' : 'bg-white border-r border-slate-200'}`}
-      >
+      <aside className={`
+        fixed top-0 left-0 h-full w-72 bg-slate-900/95 backdrop-blur-xl border-r border-white/10
+        transform transition-transform duration-300 ease-out z-50
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
         <div className="p-6">
-          <button
+          {/* Logo */}
+          <button 
             onClick={onLogoClick}
-            className="flex items-center gap-3 mb-10"
+            className="flex items-center gap-3 mb-10 cursor-pointer group"
           >
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
               <Link2 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                shrinkpro<span className="text-purple-500">.xyz</span>
-              </h1>
+              <span className="text-xl font-bold text-white block">ShrinkPro</span>
+              <span className="text-xs text-slate-500">URL Shortener</span>
             </div>
           </button>
 
+          {/* Navigation */}
           <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <RouterLink
-                key={item.page}
-                to={createPageUrl(item.page)}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  currentPage === item.page
-                    ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-purple-500'
-                    : isDark
-                    ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.name}</span>
-              </RouterLink>
-            ))}
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.name;
+              
+              return (
+                <Link
+                  key={item.name}
+                  to={createPageUrl(item.name)}
+                  onClick={() => setIsOpen(false)}
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                    ${isActive 
+                      ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-white/10' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }
+                  `}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : ''}`} />
+                  <span className="font-medium">{item.label}</span>
+                  {isActive && <ChevronRight className="w-4 h-4 ml-auto text-cyan-400" />}
+                </Link>
+              );
+            })}
           </nav>
+        </div>
+
+        {/* Bottom section */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/10">
+          <div className="text-center text-sm text-slate-500">
+            <p>© 2024 ShrinkPro</p>
+            <p className="text-xs mt-1">Version 1.0.0</p>
+          </div>
         </div>
       </aside>
     </>

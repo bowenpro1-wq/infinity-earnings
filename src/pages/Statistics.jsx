@@ -1,240 +1,213 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
-import { Card } from "@/components/ui/card";
-import { 
-  Link2, MousePointer, DollarSign, TrendingUp, 
-  Users, Eye, ArrowUpRight, ArrowDownRight 
-} from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { format, subDays } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, DollarSign, Eye, MousePointerClick } from 'lucide-react';
 
 export default function Statistics() {
-  const [theme, setTheme] = useState('light');
+  const [logoClicks, setLogoClicks] = useState(0);
+  const navigate = useNavigate();
 
-  const { data: settings } = useQuery({
-    queryKey: ['userSettings'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      const settingsList = await base44.entities.UserSettings.filter({ user_email: user.email });
-      return settingsList[0] || { theme: 'light' };
-    }
+  const { data: links = [], isLoading } = useQuery({
+    queryKey: ['statsLinks'],
+    queryFn: () => base44.entities.ShortenedLink.list('-created_date')
   });
 
-  const { data: links = [] } = useQuery({
-    queryKey: ['myLinks'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      return base44.entities.ShortenedLink.filter({ created_by: user.email });
+  const handleLogoClick = () => {
+    const newCount = logoClicks + 1;
+    setLogoClicks(newCount);
+    if (newCount >= 10) {
+      navigate(createPageUrl('AdminLogin'));
+      setLogoClicks(0);
     }
-  });
+  };
 
-  const { data: clickLogs = [] } = useQuery({
-    queryKey: ['clickLogs'],
-    queryFn: () => base44.entities.ClickLog.list()
-  });
-
-  useEffect(() => {
-    if (settings?.theme) {
-      setTheme(settings.theme);
-    }
-  }, [settings]);
-
-  const totalLinks = links.length;
   const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
-  const uniqueClicks = links.reduce((sum, link) => sum + (link.unique_clicks || 0), 0);
+  const totalUniqueClicks = links.reduce((sum, link) => sum + (link.unique_clicks || 0), 0);
   const totalEarnings = links.reduce((sum, link) => sum + (link.earnings || 0), 0);
-  const earningLinks = links.filter(link => (link.earnings || 0) > 0).length;
+  const linksWithEarnings = links.filter(link => (link.earnings || 0) > 0).length;
 
-  // Prepare chart data
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = subDays(new Date(), 6 - i);
-    return {
-      date: format(date, 'MMM d'),
-      clicks: Math.floor(Math.random() * 50), // Simulated data
-      earnings: Math.random() * 5
-    };
-  });
+  const chartData = links.slice(0, 10).map(link => ({
+    name: link.short_code,
+    clicks: link.clicks || 0,
+    unique: link.unique_clicks || 0,
+    earnings: link.earnings || 0
+  }));
 
-  const topLinks = [...links]
-    .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
-    .slice(0, 5);
+  const pieData = [
+    { name: 'Unique Clicks', value: totalUniqueClicks, color: '#22d3ee' },
+    { name: 'Repeat Clicks', value: totalClicks - totalUniqueClicks, color: '#a855f7' }
+  ];
 
-  const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
-
-  const isDark = theme === 'dark';
+  const stats = [
+    { label: 'Total Clicks', value: totalClicks, icon: MousePointerClick, color: 'cyan' },
+    { label: 'Unique Clicks', value: totalUniqueClicks, icon: Eye, color: 'purple' },
+    { label: 'Total Earnings', value: `$${totalEarnings.toFixed(2)}`, icon: DollarSign, color: 'green' },
+    { label: 'Links with Earnings', value: linksWithEarnings, icon: TrendingUp, color: 'pink' }
+  ];
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-      <Sidebar currentPage="Statistics" theme={theme} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+      <Sidebar currentPage="Statistics" onLogoClick={handleLogoClick} />
       
       <main className="lg:ml-72 p-6 lg:p-10">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Statistics
-            </h1>
-            <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Track your link performance and earnings
-            </p>
+          {/* Header */}
+          <div className="mb-8 pt-12 lg:pt-0">
+            <h1 className="text-3xl font-bold text-white mb-2">Statistics</h1>
+            <p className="text-slate-400">Track your link performance and earnings</p>
           </div>
 
-          {/* Key Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                  <Link2 className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalLinks}</p>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total Links</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                  <MousePointer className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalClicks}</p>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total Clicks</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{uniqueClicks}</p>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Unique Clicks</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-amber-500" />
-                </div>
-                <div>
-                  <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>${totalEarnings.toFixed(2)}</p>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total Earnings</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Earnings Info */}
-          <Card className={`p-6 mb-8 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-            <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-500'}`} />
-              <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Earning Links
-              </h2>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
             </div>
-            <p className={`text-lg ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              <span className="font-bold text-green-500">{earningLinks}</span> of your {totalLinks} links have earned money.
-            </p>
-            <p className={`text-sm mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Remember: Each unique IP can only count once per link for earning money!
-            </p>
-          </Card>
-
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Click Trends */}
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Clicks (Last 7 Days)
-              </h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={last7Days}>
-                    <XAxis dataKey="date" tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
-                    <YAxis tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: isDark ? '#1e293b' : '#fff',
-                        border: isDark ? '1px solid #334155' : '1px solid #e2e8f0'
-                      }}
-                    />
-                    <Bar dataKey="clicks" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+          ) : (
+            <>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {stats.map((stat, index) => {
+                  const Icon = stat.icon;
+                  return (
+                    <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-xl">
+                      <CardContent className="p-5">
+                        <div className={`w-10 h-10 bg-${stat.color}-500/20 rounded-xl flex items-center justify-center mb-3`}>
+                          <Icon className={`w-5 h-5 text-${stat.color}-400`} />
+                        </div>
+                        <p className="text-2xl font-bold text-white">{stat.value}</p>
+                        <p className="text-sm text-slate-400">{stat.label}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
-            </Card>
 
-            {/* Earnings Trend */}
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Earnings (Last 7 Days)
-              </h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={last7Days}>
-                    <XAxis dataKey="date" tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
-                    <YAxis tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: isDark ? '#1e293b' : '#fff',
-                        border: isDark ? '1px solid #334155' : '1px solid #e2e8f0'
-                      }}
-                      formatter={(value) => [`$${value.toFixed(2)}`, 'Earnings']}
-                    />
-                    <Line type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+              {/* Info Note */}
+              <Card className="bg-cyan-500/10 border-cyan-500/20 mb-8">
+                <CardContent className="p-4">
+                  <p className="text-cyan-400 text-sm">
+                    <strong>Note:</strong> Only unique clicks (one per IP address) count towards your earnings. This prevents abuse and ensures fair monetization.
+                  </p>
+                </CardContent>
+              </Card>
 
-            {/* Top Links */}
-            <Card className={`p-6 lg:col-span-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Top Performing Links
-              </h3>
-              {topLinks.length === 0 ? (
-                <p className={`text-center py-8 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  No links yet. Create your first shortened link!
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {topLinks.map((link, index) => (
-                    <div key={link.id} className={`flex items-center gap-4 p-4 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                      <div 
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                        style={{ backgroundColor: COLORS[index] }}
-                      >
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                          {link.title || `shrinkpro.xyz/${link.short_code}`}
-                        </p>
-                        <p className={`text-sm truncate ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                          {link.original_url}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                          {link.clicks || 0} clicks
-                        </p>
-                        <p className="text-sm text-green-500">
-                          ${(link.earnings || 0).toFixed(2)}
-                        </p>
-                      </div>
+              {/* Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* Bar Chart */}
+                <Card className="bg-white/5 border-white/10 backdrop-blur-xl lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-white">Clicks by Link</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
+                          <YAxis stroke="#9ca3af" fontSize={12} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1f2937',
+                              border: '1px solid #374151',
+                              borderRadius: '8px'
+                            }}
+                            labelStyle={{ color: '#fff' }}
+                          />
+                          <Bar dataKey="clicks" fill="#22d3ee" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="unique" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pie Chart */}
+                <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+                  <CardHeader>
+                    <CardTitle className="text-white">Click Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            dataKey="value"
+                          >
+                            {pieData.map((entry, index) => (
+                              <Cell key={index} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1f2937',
+                              border: '1px solid #374151',
+                              borderRadius: '8px'
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex justify-center gap-6 mt-4">
+                      {pieData.map((item, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-sm text-slate-400">{item.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Earnings Table */}
+              <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+                <CardHeader>
+                  <CardTitle className="text-white">Earnings by Link</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {links.length === 0 ? (
+                    <p className="text-slate-400 text-center py-8">No links yet</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="text-left py-3 px-4 text-slate-400 font-medium">Short Code</th>
+                            <th className="text-right py-3 px-4 text-slate-400 font-medium">Total Clicks</th>
+                            <th className="text-right py-3 px-4 text-slate-400 font-medium">Unique Clicks</th>
+                            <th className="text-right py-3 px-4 text-slate-400 font-medium">Earnings</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {links.map((link) => (
+                            <tr key={link.id} className="border-b border-white/5 hover:bg-white/5">
+                              <td className="py-3 px-4">
+                                <code className="text-cyan-400">/{link.short_code}</code>
+                              </td>
+                              <td className="py-3 px-4 text-right text-white">{link.clicks || 0}</td>
+                              <td className="py-3 px-4 text-right text-white">{link.unique_clicks || 0}</td>
+                              <td className="py-3 px-4 text-right text-green-400 font-medium">
+                                ${(link.earnings || 0).toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </main>
     </div>

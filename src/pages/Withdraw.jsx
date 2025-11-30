@@ -1,237 +1,239 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { DollarSign, Copy, Check, Wallet, Clock, AlertCircle } from "lucide-react";
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, addDays } from 'date-fns';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Wallet, Copy, Check, AlertCircle, MessageCircle, Mail } from 'lucide-react';
 
 export default function Withdraw() {
-  const [theme, setTheme] = useState('light');
+  const [logoClicks, setLogoClicks] = useState(0);
+  const [withdrawalResult, setWithdrawalResult] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [newWithdrawal, setNewWithdrawal] = useState(null);
-  const queryClient = useQueryClient();
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-  const { data: settings } = useQuery({
-    queryKey: ['userSettings'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      const settingsList = await base44.entities.UserSettings.filter({ user_email: user.email });
-      return settingsList[0] || { theme: 'light' };
-    }
-  });
+  useEffect(() => {
+    const loadUser = async () => {
+      const userData = await base44.auth.me();
+      setUser(userData);
+    };
+    loadUser();
+  }, []);
 
   const { data: links = [] } = useQuery({
-    queryKey: ['myLinks'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      return base44.entities.ShortenedLink.filter({ created_by: user.email });
-    }
+    queryKey: ['userLinks'],
+    queryFn: () => base44.entities.ShortenedLink.list()
   });
 
   const { data: withdrawals = [] } = useQuery({
-    queryKey: ['withdrawals'],
+    queryKey: ['userWithdrawals'],
     queryFn: async () => {
-      const user = await base44.auth.me();
+      if (!user?.email) return [];
       return base44.entities.WithdrawalRequest.filter({ user_email: user.email });
-    }
+    },
+    enabled: !!user
   });
 
-  useEffect(() => {
-    if (settings?.theme) {
-      setTheme(settings.theme);
+  const handleLogoClick = () => {
+    const newCount = logoClicks + 1;
+    setLogoClicks(newCount);
+    if (newCount >= 10) {
+      navigate(createPageUrl('AdminLogin'));
+      setLogoClicks(0);
     }
-  }, [settings]);
+  };
 
   const totalEarnings = links.reduce((sum, link) => sum + (link.earnings || 0), 0);
   const withdrawnAmount = withdrawals
     .filter(w => w.status === 'completed')
-    .reduce((sum, w) => sum + w.amount, 0);
+    .reduce((sum, w) => sum + (w.amount || 0), 0);
   const availableBalance = totalEarnings - withdrawnAmount;
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let password = '';
+    let result = '';
     for (let i = 0; i < 8; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return password;
+    return result;
   };
 
-  const createWithdrawalMutation = useMutation({
-    mutationFn: async () => {
-      const user = await base44.auth.me();
-      const password = generatePassword();
-      const expiryDate = addDays(new Date(), 1);
-      const verificationUrl = `shrinkpro.xyz/verify/${password}`;
-      
-      const withdrawal = await base44.entities.WithdrawalRequest.create({
-        amount: availableBalance,
-        password: password,
-        verification_url: verificationUrl,
-        expiry_date: expiryDate.toISOString(),
-        status: 'pending',
-        user_email: user.email
-      });
-      
-      return { ...withdrawal, password, verificationUrl };
-    },
-    onSuccess: (data) => {
-      setNewWithdrawal(data);
-      queryClient.invalidateQueries({ queryKey: ['withdrawals'] });
-    }
-  });
+  const handleWithdraw = async () => {
+    if (availableBalance <= 0) return;
 
-  const handleCopy = (text) => {
+    const password = generatePassword();
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 1);
+
+    const withdrawal = await base44.entities.WithdrawalRequest.create({
+      amount: availableBalance,
+      password: password,
+      verification_url: `${window.location.origin}/Verification?p=${password}`,
+      expiry_date: expiryDate.toISOString(),
+      status: 'pending',
+      user_email: user?.email
+    });
+
+    setWithdrawalResult({
+      url: `${window.location.origin}/Verification?p=${password}`,
+      password: password,
+      amount: availableBalance,
+      expiryDate: expiryDate
+    });
+  };
+
+  const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isDark = theme === 'dark';
-
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-      <Sidebar currentPage="Withdraw" theme={theme} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+      <Sidebar currentPage="Withdraw" onLogoClick={handleLogoClick} />
       
       <main className="lg:ml-72 p-6 lg:p-10">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Withdraw Payments
-            </h1>
-            <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Request withdrawal of your earnings
-            </p>
+          {/* Header */}
+          <div className="mb-8 pt-12 lg:pt-0">
+            <h1 className="text-3xl font-bold text-white mb-2">Withdraw Payments</h1>
+            <p className="text-slate-400">Request to withdraw your earnings</p>
           </div>
 
           {/* Balance Card */}
-          <Card className={`p-8 mb-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/25">
-                <Wallet className="w-8 h-8 text-white" />
+          <Card className="bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border-white/10 backdrop-blur-xl mb-6">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-2xl flex items-center justify-center">
+                  <Wallet className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Available Balance</p>
+                  <p className="text-4xl font-bold text-white">${availableBalance.toFixed(2)}</p>
+                </div>
               </div>
-              <div>
-                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Available Balance</p>
-                <p className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  ${availableBalance.toFixed(2)}
-                </p>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-white/5 rounded-xl p-4">
+                  <p className="text-slate-400">Total Earned</p>
+                  <p className="text-xl font-semibold text-white">${totalEarnings.toFixed(2)}</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4">
+                  <p className="text-slate-400">Withdrawn</p>
+                  <p className="text-xl font-semibold text-white">${withdrawnAmount.toFixed(2)}</p>
+                </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className={`p-4 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total Earned</p>
-                <p className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  ${totalEarnings.toFixed(2)}
-                </p>
-              </div>
-              <div className={`p-4 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Withdrawn</p>
-                <p className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  ${withdrawnAmount.toFixed(2)}
-                </p>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => createWithdrawalMutation.mutate()}
-              disabled={availableBalance <= 0 || createWithdrawalMutation.isPending}
-              className="w-full h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-lg font-semibold rounded-xl"
-            >
-              <DollarSign className="w-5 h-5 mr-2" />
-              Request Withdrawal
-            </Button>
+            </CardContent>
           </Card>
 
-          {/* New Withdrawal Info */}
-          {newWithdrawal && (
-            <Card className={`p-6 mb-6 border-2 border-green-500 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Withdrawal Request Created!
-              </h3>
+          {!withdrawalResult ? (
+            <>
+              {/* Withdraw Button */}
+              <Button
+                onClick={handleWithdraw}
+                disabled={availableBalance <= 0}
+                className="w-full h-14 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-xl text-lg mb-6"
+              >
+                Request Withdrawal
+              </Button>
+
+              {availableBalance <= 0 && (
+                <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-400">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm">You need to earn some money first before withdrawing.</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <Card className="bg-white/5 border-white/10 backdrop-blur-xl mb-6">
+              <CardContent className="p-6 space-y-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">Withdrawal Requested!</h3>
+                  <p className="text-slate-400 text-sm">Amount: ${withdrawalResult.amount.toFixed(2)}</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Verification URL</label>
+                    <div className="flex gap-2">
+                      <code className="flex-1 bg-white/5 text-cyan-400 p-3 rounded-lg text-sm break-all">
+                        {withdrawalResult.url}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="border-white/10 text-slate-400"
+                        onClick={() => copyToClipboard(withdrawalResult.url)}
+                      >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Verification Password</label>
+                    <div className="flex gap-2">
+                      <code className="flex-1 bg-white/5 text-purple-400 p-3 rounded-lg text-lg font-mono text-center">
+                        {withdrawalResult.password}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="border-white/10 text-slate-400"
+                        onClick={() => copyToClipboard(withdrawalResult.password)}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-yellow-400 mb-2">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-medium">Important</span>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      This URL will expire in 1 day. Please contact the admin with this verification URL and password.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact Info */}
+          <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Contact for Withdrawal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">WeChat</p>
+                  <p className="text-slate-400">Bowen: 17621774110</p>
+                </div>
+              </div>
               
-              <div className="space-y-4">
-                <div>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Verification URL (expires in 1 day):</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className={`flex-1 p-3 rounded-lg text-sm ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>
-                      {newWithdrawal.verificationUrl}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopy(newWithdrawal.verificationUrl)}
-                    >
-                      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
+              <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
+                <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+                  <Mail className="w-6 h-6 text-cyan-400" />
                 </div>
-
                 <div>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Password for verification:</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className={`flex-1 p-3 rounded-lg text-lg font-mono ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>
-                      {newWithdrawal.password}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopy(newWithdrawal.password)}
-                    >
-                      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
+                  <p className="text-white font-medium">Email</p>
+                  <p className="text-slate-400">starproduce@atomicmail.io</p>
                 </div>
-
-                <Alert className={isDark ? 'bg-slate-800 border-slate-700' : ''}>
-                  <AlertCircle className="w-4 h-4" />
-                  <AlertDescription>
-                    Please contact Bowen via WeChat: <strong>17621774110</strong> or email: <strong>starproduce@atomicmail.io</strong>
-                  </AlertDescription>
-                </Alert>
               </div>
-            </Card>
-          )}
-
-          {/* Previous Withdrawals */}
-          {withdrawals.length > 0 && (
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Withdrawal History
-              </h3>
-              <div className="space-y-3">
-                {withdrawals.map((w) => (
-                  <div key={w.id} className={`p-4 rounded-xl flex items-center justify-between ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                    <div>
-                      <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        ${w.amount.toFixed(2)}
-                      </p>
-                      <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Password: {w.password}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        w.status === 'completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : w.status === 'expired'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {w.status}
-                      </span>
-                      <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                        {format(new Date(w.created_date), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

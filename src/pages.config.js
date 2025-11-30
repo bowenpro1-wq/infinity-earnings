@@ -5,10 +5,11 @@ import ShortenNew from './pages/ShortenNew';
 import Withdraw from './pages/Withdraw';
 import Settings from './pages/Settings';
 import Statistics from './pages/Statistics';
-import Help from './pages/Help';
 import RequestAd from './pages/RequestAd';
+import Help from './pages/Help';
+import AdminLogin from './pages/AdminLogin';
 import AdminPanel from './pages/AdminPanel';
-import Redirect from './pages/Redirect';
+import Verification from './pages/Verification';
 
 
 export const PAGES = {
@@ -19,10 +20,11 @@ export const PAGES = {
     "Withdraw": Withdraw,
     "Settings": Settings,
     "Statistics": Statistics,
-    "Help": Help,
     "RequestAd": RequestAd,
+    "Help": Help,
+    "AdminLogin": AdminLogin,
     "AdminPanel": AdminPanel,
-    "Redirect": Redirect,
+    "Verification": Verification,
 }
 
 export const pagesConfig = {

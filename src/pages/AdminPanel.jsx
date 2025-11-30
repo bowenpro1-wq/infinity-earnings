@@ -1,42 +1,23 @@
 import React, { useState } from 'react';
-import { Card } from "@/components/ui/card";
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Shield, Lock, Plus, Image as ImageIcon, 
-  Search, Check, X, Trash2, ExternalLink,
-  Loader2, Link2
-} from "lucide-react";
-import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-
-const ADMIN_PASSWORD = '20140626';
+  Shield, Megaphone, Wallet, Search, Plus, Trash2, 
+  Check, X, ExternalLink, ArrowLeft
+} from 'lucide-react';
 
 export default function AdminPanel() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [searchPassword, setSearchPassword] = useState('');
-  const [showCreateAd, setShowCreateAd] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [newAd, setNewAd] = useState({
     ad_type: 'popup',
     image_url: '',
@@ -45,52 +26,30 @@ export default function AdminPanel() {
     delay_seconds: 5,
     is_active: true
   });
-
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: withdrawals = [] } = useQuery({
-    queryKey: ['allWithdrawals'],
-    queryFn: () => base44.entities.WithdrawalRequest.list(),
-    enabled: isAuthenticated
+  // Queries
+  const { data: ads = [] } = useQuery({
+    queryKey: ['adminAds'],
+    queryFn: () => base44.entities.Advertisement.list('-created_date')
   });
 
   const { data: adRequests = [] } = useQuery({
-    queryKey: ['allAdRequests'],
-    queryFn: () => base44.entities.AdRequest.list(),
-    enabled: isAuthenticated
+    queryKey: ['adminAdRequests'],
+    queryFn: () => base44.entities.AdRequest.list('-created_date')
   });
 
-  const { data: ads = [] } = useQuery({
-    queryKey: ['allAds'],
-    queryFn: () => base44.entities.Advertisement.list(),
-    enabled: isAuthenticated
+  const { data: withdrawals = [] } = useQuery({
+    queryKey: ['adminWithdrawals'],
+    queryFn: () => base44.entities.WithdrawalRequest.list('-created_date')
   });
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      setError('');
-    } else {
-      setError('Incorrect password');
-    }
-  };
-
-  const updateWithdrawalMutation = useMutation({
-    mutationFn: ({ id, status }) => base44.entities.WithdrawalRequest.update(id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allWithdrawals'] })
-  });
-
-  const updateAdRequestMutation = useMutation({
-    mutationFn: ({ id, status }) => base44.entities.AdRequest.update(id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allAdRequests'] })
-  });
-
+  // Mutations
   const createAdMutation = useMutation({
     mutationFn: (data) => base44.entities.Advertisement.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allAds'] });
-      setShowCreateAd(false);
+      queryClient.invalidateQueries(['adminAds']);
       setNewAd({
         ad_type: 'popup',
         image_url: '',
@@ -104,353 +63,356 @@ export default function AdminPanel() {
 
   const deleteAdMutation = useMutation({
     mutationFn: (id) => base44.entities.Advertisement.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allAds'] })
+    onSuccess: () => queryClient.invalidateQueries(['adminAds'])
   });
 
-  const toggleAdMutation = useMutation({
-    mutationFn: ({ id, is_active }) => base44.entities.Advertisement.update(id, { is_active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allAds'] })
+  const updateAdRequestMutation = useMutation({
+    mutationFn: ({ id, status }) => base44.entities.AdRequest.update(id, { status }),
+    onSuccess: () => queryClient.invalidateQueries(['adminAdRequests'])
   });
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const updateWithdrawalMutation = useMutation({
+    mutationFn: ({ id, status }) => base44.entities.WithdrawalRequest.update(id, { status }),
+    onSuccess: () => queryClient.invalidateQueries(['adminWithdrawals'])
+  });
 
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setNewAd(prev => ({ ...prev, image_url: file_url }));
-    setUploading(false);
-  };
-
-  const filteredWithdrawals = searchPassword
+  const filteredWithdrawals = searchPassword 
     ? withdrawals.filter(w => w.password?.toLowerCase().includes(searchPassword.toLowerCase()))
     : withdrawals;
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-slate-900 border-slate-800 p-8">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-            <p className="text-slate-400 mt-1">Enter password to continue</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-              <Input
-                type="password"
-                placeholder="Enter admin password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-12 h-12 bg-slate-800 border-slate-700 text-white"
-              />
-            </div>
-            {error && (
-              <p className="text-red-500 text-sm">{error}</p>
-            )}
-            <Button
-              type="submit"
-              className="w-full h-12 bg-gradient-to-r from-red-600 to-orange-600"
-            >
-              Access Panel
-            </Button>
-          </form>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-950 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-red-950 to-slate-950 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-            <p className="text-slate-400">shrinkpro.xyz administration</p>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(createPageUrl('Home'))}
+            className="text-slate-400 hover:text-white"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
+              <p className="text-slate-400 text-sm">Manage ads and withdrawals</p>
+            </div>
           </div>
         </div>
 
-        <Tabs defaultValue="withdrawals" className="space-y-6">
-          <TabsList className="bg-slate-900 border border-slate-800">
-            <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-            <TabsTrigger value="ad-requests">Ad Requests</TabsTrigger>
-            <TabsTrigger value="ads">Manage Ads</TabsTrigger>
+        <Tabs defaultValue="ads" className="space-y-6">
+          <TabsList className="bg-white/5 border border-white/10">
+            <TabsTrigger value="ads" className="data-[state=active]:bg-white/10">
+              <Megaphone className="w-4 h-4 mr-2" />
+              Advertisements
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="data-[state=active]:bg-white/10">
+              <Plus className="w-4 h-4 mr-2" />
+              Ad Requests
+            </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="data-[state=active]:bg-white/10">
+              <Wallet className="w-4 h-4 mr-2" />
+              Withdrawals
+            </TabsTrigger>
           </TabsList>
 
-          {/* Withdrawals Tab */}
-          <TabsContent value="withdrawals">
-            <Card className="bg-slate-900 border-slate-800 p-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    placeholder="Search by password..."
-                    value={searchPassword}
-                    onChange={(e) => setSearchPassword(e.target.value)}
-                    className="pl-10 bg-slate-800 border-slate-700 text-white"
-                  />
-                </div>
-              </div>
+          {/* Advertisements Tab */}
+          <TabsContent value="ads" className="space-y-6">
+            {/* Create New Ad */}
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white">Create New Ad</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Ad Type</Label>
+                    <Select
+                      value={newAd.ad_type}
+                      onValueChange={(v) => setNewAd({ ...newAd, ad_type: v })}
+                    >
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        <SelectItem value="popup">Pop-up Ad</SelectItem>
+                        <SelectItem value="homepage">Homepage Ad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-3">
-                {filteredWithdrawals.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">No withdrawal requests found</p>
-                ) : (
-                  filteredWithdrawals.map((w) => (
-                    <div key={w.id} className="bg-slate-800 rounded-xl p-4 flex items-center gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="text-white font-semibold">${w.amount?.toFixed(2)}</p>
-                          <Badge variant={
-                            w.status === 'completed' ? 'default' :
-                            w.status === 'expired' ? 'destructive' : 'secondary'
-                          }>
-                            {w.status}
-                          </Badge>
-                        </div>
-                        <p className="text-slate-400 text-sm">Password: {w.password}</p>
-                        <p className="text-slate-500 text-xs">{w.user_email}</p>
-                      </div>
-                      {w.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => updateWithdrawalMutation.mutate({ id: w.id, status: 'completed' })}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => updateWithdrawalMutation.mutate({ id: w.id, status: 'expired' })}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
+                  {newAd.ad_type === 'homepage' && (
+                    <div>
+                      <Label className="text-slate-300 mb-2 block">Position</Label>
+                      <Select
+                        value={newAd.position}
+                        onValueChange={(v) => setNewAd({ ...newAd, position: v })}
+                      >
+                        <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10">
+                          <SelectItem value="top">Top</SelectItem>
+                          <SelectItem value="center">Center</SelectItem>
+                          <SelectItem value="bottom">Bottom</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))
+                  )}
+
+                  {newAd.ad_type === 'popup' && (
+                    <div>
+                      <Label className="text-slate-300 mb-2 block">Delay (seconds)</Label>
+                      <Input
+                        type="number"
+                        value={newAd.delay_seconds}
+                        onChange={(e) => setNewAd({ ...newAd, delay_seconds: parseInt(e.target.value) })}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Image URL</Label>
+                    <Input
+                      value={newAd.image_url}
+                      onChange={(e) => setNewAd({ ...newAd, image_url: e.target.value })}
+                      placeholder="https://example.com/ad-image.jpg"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Target URL</Label>
+                    <Input
+                      value={newAd.target_url}
+                      onChange={(e) => setNewAd({ ...newAd, target_url: e.target.value })}
+                      placeholder="https://example.com"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => createAdMutation.mutate(newAd)}
+                  disabled={!newAd.target_url}
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Ad
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Existing Ads */}
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white">Existing Ads ({ads.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {ads.length === 0 ? (
+                  <p className="text-slate-400 text-center py-8">No ads created yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {ads.map((ad) => (
+                      <div key={ad.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                        <div className="flex items-center gap-4">
+                          <Badge className={ad.ad_type === 'popup' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-purple-500/20 text-purple-400'}>
+                            {ad.ad_type}
+                          </Badge>
+                          <div>
+                            <p className="text-white font-medium truncate max-w-xs">{ad.target_url}</p>
+                            <p className="text-slate-400 text-sm">
+                              {ad.ad_type === 'popup' ? `${ad.delay_seconds}s delay` : ad.position}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
+                            {ad.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-400 hover:text-red-300"
+                            onClick={() => deleteAdMutation.mutate(ad.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </div>
+              </CardContent>
             </Card>
           </TabsContent>
 
           {/* Ad Requests Tab */}
-          <TabsContent value="ad-requests">
-            <Card className="bg-slate-900 border-slate-800 p-6">
-              <div className="space-y-3">
+          <TabsContent value="requests">
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white">Ad Requests ({adRequests.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
                 {adRequests.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">No ad requests</p>
+                  <p className="text-slate-400 text-center py-8">No ad requests</p>
                 ) : (
-                  adRequests.map((req) => (
-                    <div key={req.id} className="bg-slate-800 rounded-xl p-4">
-                      <div className="flex items-start gap-4">
-                        {req.image_url && (
-                          <img src={req.image_url} alt="Ad" className="w-20 h-20 rounded-lg object-cover" />
-                        )}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <p className="text-white font-semibold">{req.requester_name}</p>
-                            <Badge variant={
-                              req.status === 'approved' ? 'default' :
-                              req.status === 'rejected' ? 'destructive' : 'secondary'
-                            }>
-                              {req.status}
-                            </Badge>
+                  <div className="space-y-4">
+                    {adRequests.map((request) => (
+                      <div key={request.id} className="p-5 bg-white/5 rounded-xl">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="text-white font-semibold text-lg">{request.requester_name}</h3>
+                            <p className="text-slate-400 text-sm">{request.location} • Age: {request.age}</p>
                           </div>
-                          <p className="text-slate-400 text-sm">
-                            Type: {req.ad_type} | Cost: ${req.cost} | Duration: {req.duration_days} days
-                          </p>
-                          <p className="text-slate-500 text-xs">
-                            Age: {req.age} | From: {req.location}
-                          </p>
+                          <Badge className={
+                            request.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                            request.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                            'bg-red-500/20 text-red-400'
+                          }>
+                            {request.status}
+                          </Badge>
                         </div>
-                        {req.status === 'pending' && (
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                          <div>
+                            <p className="text-slate-400">Ad Type</p>
+                            <p className="text-white">{request.ad_type}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400">Budget</p>
+                            <p className="text-white">${request.cost}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400">Duration</p>
+                            <p className="text-white">{request.duration_days} days</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400">Birth Date</p>
+                            <p className="text-white">{request.birth_date}</p>
+                          </div>
+                        </div>
+
+                        {request.status === 'pending' && (
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              onClick={() => updateAdRequestMutation.mutate({ id: req.id, status: 'approved' })}
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                              onClick={() => updateAdRequestMutation.mutate({ id: request.id, status: 'approved' })}
                             >
-                              <Check className="w-4 h-4" />
+                              <Check className="w-4 h-4 mr-1" /> Approve
                             </Button>
                             <Button
                               size="sm"
-                              variant="destructive"
-                              onClick={() => updateAdRequestMutation.mutate({ id: req.id, status: 'rejected' })}
+                              className="bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                              onClick={() => updateAdRequestMutation.mutate({ id: request.id, status: 'rejected' })}
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-4 h-4 mr-1" /> Reject
                             </Button>
                           </div>
                         )}
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
-              </div>
+              </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Manage Ads Tab */}
-          <TabsContent value="ads">
-            <Card className="bg-slate-900 border-slate-800 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Active Advertisements</h2>
-                <Dialog open={showCreateAd} onOpenChange={setShowCreateAd}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-to-r from-purple-600 to-blue-600">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Ad
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-slate-900 border-slate-800 text-white">
-                    <DialogHeader>
-                      <DialogTitle>Create New Advertisement</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Ad Type</Label>
-                        <Select
-                          value={newAd.ad_type}
-                          onValueChange={(value) => setNewAd(prev => ({ ...prev, ad_type: value }))}
-                        >
-                          <SelectTrigger className="bg-slate-800 border-slate-700">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="popup">Pop Up Ad</SelectItem>
-                            <SelectItem value="homepage">Home Page Ad</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+          {/* Withdrawals Tab */}
+          <TabsContent value="withdrawals" className="space-y-6">
+            {/* Search */}
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Input
+                    value={searchPassword}
+                    onChange={(e) => setSearchPassword(e.target.value)}
+                    placeholder="Search by password..."
+                    className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                      <div>
-                        <Label>Target URL</Label>
-                        <Input
-                          value={newAd.target_url}
-                          onChange={(e) => setNewAd(prev => ({ ...prev, target_url: e.target.value }))}
-                          className="bg-slate-800 border-slate-700"
-                          placeholder="https://..."
-                        />
-                      </div>
-
-                      {newAd.ad_type === 'popup' && (
-                        <div>
-                          <Label>Delay (seconds)</Label>
-                          <Input
-                            type="number"
-                            value={newAd.delay_seconds}
-                            onChange={(e) => setNewAd(prev => ({ ...prev, delay_seconds: parseInt(e.target.value) }))}
-                            className="bg-slate-800 border-slate-700"
-                          />
-                        </div>
-                      )}
-
-                      <div>
-                        <Label>Position</Label>
-                        <Select
-                          value={newAd.position}
-                          onValueChange={(value) => setNewAd(prev => ({ ...prev, position: value }))}
-                        >
-                          <SelectTrigger className="bg-slate-800 border-slate-700">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="top">Top</SelectItem>
-                            <SelectItem value="bottom">Bottom</SelectItem>
-                            <SelectItem value="center">Center</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label>Image</Label>
-                        <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 text-center">
-                          {newAd.image_url ? (
-                            <div>
-                              <img src={newAd.image_url} alt="Preview" className="max-h-32 mx-auto rounded mb-2" />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setNewAd(prev => ({ ...prev, image_url: '' }))}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                              {uploading ? (
-                                <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-                              ) : (
-                                <ImageIcon className="w-8 h-8 mx-auto text-slate-600" />
-                              )}
-                            </label>
-                          )}
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={() => createAdMutation.mutate(newAd)}
-                        disabled={createAdMutation.isPending}
-                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600"
-                      >
-                        Create Advertisement
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="space-y-3">
-                {ads.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">No advertisements created</p>
+            {/* Withdrawals List */}
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white">Withdrawal Requests ({filteredWithdrawals.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {filteredWithdrawals.length === 0 ? (
+                  <p className="text-slate-400 text-center py-8">No withdrawal requests found</p>
                 ) : (
-                  ads.map((ad) => (
-                    <div key={ad.id} className="bg-slate-800 rounded-xl p-4 flex items-center gap-4">
-                      {ad.image_url && (
-                        <img src={ad.image_url} alt="Ad" className="w-16 h-16 rounded-lg object-cover" />
-                      )}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={ad.is_active ? 'default' : 'secondary'}>
-                            {ad.ad_type}
-                          </Badge>
-                          <Badge variant={ad.is_active ? 'default' : 'outline'}>
-                            {ad.is_active ? 'Active' : 'Inactive'}
+                  <div className="space-y-4">
+                    {filteredWithdrawals.map((withdrawal) => (
+                      <div key={withdrawal.id} className="p-5 bg-white/5 rounded-xl">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <p className="text-2xl font-bold text-white">${withdrawal.amount?.toFixed(2)}</p>
+                            <p className="text-slate-400 text-sm">{withdrawal.user_email}</p>
+                          </div>
+                          <Badge className={
+                            withdrawal.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                            withdrawal.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                            'bg-red-500/20 text-red-400'
+                          }>
+                            {withdrawal.status}
                           </Badge>
                         </div>
-                        <p className="text-slate-400 text-sm mt-1 truncate">{ad.target_url}</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <p className="text-slate-400 text-sm">Password</p>
+                            <code className="text-cyan-400 font-mono">{withdrawal.password}</code>
+                          </div>
+                          <div>
+                            <p className="text-slate-400 text-sm">Expires</p>
+                            <p className="text-white">{new Date(withdrawal.expiry_date).toLocaleString()}</p>
+                          </div>
+                        </div>
+
+                        {withdrawal.verification_url && (
+                          <a
+                            href={withdrawal.verification_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm mb-4"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View Verification
+                          </a>
+                        )}
+
+                        {withdrawal.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                              onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: 'completed' })}
+                            >
+                              <Check className="w-4 h-4 mr-1" /> Mark Completed
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                              onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: 'expired' })}
+                            >
+                              <X className="w-4 h-4 mr-1" /> Mark Expired
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => toggleAdMutation.mutate({ id: ad.id, is_active: !ad.is_active })}
-                          className="border-slate-700"
-                        >
-                          {ad.is_active ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          onClick={() => deleteAdMutation.mutate(ad.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
-              </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

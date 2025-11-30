@@ -1,158 +1,116 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Mail, MessageCircle, HelpCircle, ExternalLink, Copy, Check } from "lucide-react";
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpCircle, Mail, MessageCircle, ExternalLink } from 'lucide-react';
 
 export default function Help() {
-  const [theme, setTheme] = useState('light');
-  const [copied, setCopied] = useState(null);
+  const [logoClicks, setLogoClicks] = useState(0);
+  const navigate = useNavigate();
 
-  const { data: settings } = useQuery({
-    queryKey: ['userSettings'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      const settingsList = await base44.entities.UserSettings.filter({ user_email: user.email });
-      return settingsList[0] || { theme: 'light' };
+  const handleLogoClick = () => {
+    const newCount = logoClicks + 1;
+    setLogoClicks(newCount);
+    if (newCount >= 10) {
+      navigate(createPageUrl('AdminLogin'));
+      setLogoClicks(0);
     }
-  });
-
-  useEffect(() => {
-    if (settings?.theme) {
-      setTheme(settings.theme);
-    }
-  }, [settings]);
-
-  const handleCopy = (text, id) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
   };
 
-  const isDark = theme === 'dark';
-
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-      <Sidebar currentPage="Help" theme={theme} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+      <Sidebar currentPage="Help" onLogoClick={handleLogoClick} />
       
       <main className="lg:ml-72 p-6 lg:p-10">
         <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/25">
-              <HelpCircle className="w-10 h-10 text-white" />
-            </div>
-            <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Having trouble with shrinkpro?
-            </h1>
-            <p className={`text-xl mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Contact us!
-            </p>
+          {/* Header */}
+          <div className="mb-8 pt-12 lg:pt-0">
+            <h1 className="text-3xl font-bold text-white mb-2">Help & Support</h1>
+            <p className="text-slate-400">We're here to help you</p>
           </div>
 
-          <div className="space-y-6">
-            {/* Primary Email */}
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-6 h-6 text-purple-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Primary Email
-                  </h3>
-                  <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Best for general inquiries and support
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className={`flex-1 p-3 rounded-lg ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>
-                      starproduce@atomicmail.io
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopy('starproduce@atomicmail.io', 'primary')}
-                      className={isDark ? 'border-slate-700' : ''}
-                    >
-                      {copied === 'primary' ? (
-                        <Check className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
+          {/* Main Card */}
+          <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <HelpCircle className="w-10 h-10 text-white" />
               </div>
-            </Card>
+              
+              <h2 className="text-2xl font-bold text-white mb-3">
+                Having trouble with ShrinkPro?
+              </h2>
+              
+              <p className="text-slate-400 text-lg mb-8">
+                Contact us!
+              </p>
 
-            {/* Secondary Email */}
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-6 h-6 text-blue-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Secondary Email
-                  </h3>
-                  <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Alternative contact for urgent matters
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className={`flex-1 p-3 rounded-lg ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>
-                      starproducer@atomicmail.io
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopy('starproducer@atomicmail.io', 'secondary')}
-                      className={isDark ? 'border-slate-700' : ''}
-                    >
-                      {copied === 'secondary' ? (
-                        <Check className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* FAQ Section */}
-            <Card className={`p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-              <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Frequently Asked Questions
-              </h3>
+              {/* Contact Options */}
               <div className="space-y-4">
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                  <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    How do I earn money?
-                  </p>
-                  <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    You earn money when unique visitors click on your shortened links. Each unique IP can only count once per link.
-                  </p>
-                </div>
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                  <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    How do I withdraw my earnings?
-                  </p>
-                  <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Go to "Withdraw Payments" and request a withdrawal. You'll receive a verification URL and password to share with the admin.
-                  </p>
-                </div>
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                  <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Can I request ads for my links?
-                  </p>
-                  <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Yes! Go to "Request an Ad" to submit your advertisement request. The admin will review and approve it.
-                  </p>
-                </div>
+                {/* Primary Email */}
+                <a 
+                  href="mailto:starproduce@atomicmail.io"
+                  className="flex items-center justify-between p-5 bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 rounded-xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+                      <Mail className="w-6 h-6 text-cyan-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-white font-medium">Primary Email</p>
+                      <p className="text-cyan-400">starproduce@atomicmail.io</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                </a>
+
+                {/* Secondary Email */}
+                <a 
+                  href="mailto:starproducer@atomicmail.io"
+                  className="flex items-center justify-between p-5 bg-gradient-to-r from-purple-500/20 to-purple-500/10 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                      <Mail className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-white font-medium">Secondary Email</p>
+                      <p className="text-purple-400">starproducer@atomicmail.io</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                </a>
               </div>
-            </Card>
-          </div>
+
+              {/* Additional Info */}
+              <div className="mt-8 p-4 bg-white/5 rounded-xl">
+                <p className="text-slate-400 text-sm">
+                  We typically respond within 24-48 hours. Please include your account email and a detailed description of your issue.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* FAQ Section */}
+          <Card className="bg-white/5 border-white/10 backdrop-blur-xl mt-6">
+            <CardHeader>
+              <CardTitle className="text-white">Frequently Asked Questions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-white/5 rounded-xl">
+                <h4 className="text-white font-medium mb-2">How do I earn money?</h4>
+                <p className="text-slate-400 text-sm">You earn money for each unique click on your shortened links. Only one click per IP address counts.</p>
+              </div>
+              <div className="p-4 bg-white/5 rounded-xl">
+                <h4 className="text-white font-medium mb-2">How do I withdraw?</h4>
+                <p className="text-slate-400 text-sm">Go to Withdraw Payments, request a withdrawal, then contact Bowen via WeChat or email with your verification details.</p>
+              </div>
+              <div className="p-4 bg-white/5 rounded-xl">
+                <h4 className="text-white font-medium mb-2">How do ads work?</h4>
+                <p className="text-slate-400 text-sm">You can request to advertise on ShrinkPro. Submit a request with your details and wait for admin approval.</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

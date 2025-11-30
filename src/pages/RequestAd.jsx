@@ -1,319 +1,262 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
-import { Card } from "@/components/ui/card";
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { 
-  Megaphone, Upload, Loader2, Check, AlertCircle,
-  Image as ImageIcon
-} from "lucide-react";
-import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Megaphone, Check, Mail } from 'lucide-react';
 
 export default function RequestAd() {
-  const [theme, setTheme] = useState('light');
+  const [logoClicks, setLogoClicks] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    requester_name: '',
-    birth_date: '',
+    name: '',
+    birthDate: '',
     age: '',
     location: '',
-    ad_type: 'popup',
+    adType: 'popup',
     cost: '',
-    duration_days: '',
-    image_url: '',
-    target_url: ''
+    duration: ''
   });
-  const [uploading, setUploading] = useState(false);
+  const navigate = useNavigate();
 
-  const { data: settings } = useQuery({
-    queryKey: ['userSettings'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      const settingsList = await base44.entities.UserSettings.filter({ user_email: user.email });
-      return settingsList[0] || { theme: 'light' };
+  const handleLogoClick = () => {
+    const newCount = logoClicks + 1;
+    setLogoClicks(newCount);
+    if (newCount >= 10) {
+      navigate(createPageUrl('AdminLogin'));
+      setLogoClicks(0);
     }
-  });
-
-  useEffect(() => {
-    if (settings?.theme) {
-      setTheme(settings.theme);
-    }
-  }, [settings]);
-
-  const submitMutation = useMutation({
-    mutationFn: async (data) => {
-      return base44.entities.AdRequest.create({
-        ...data,
-        status: 'pending'
-      });
-    },
-    onSuccess: () => {
-      setSubmitted(true);
-    }
-  });
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setFormData(prev => ({ ...prev, image_url: file_url }));
-    setUploading(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    submitMutation.mutate(formData);
+    setIsLoading(true);
+
+    await base44.entities.AdRequest.create({
+      requester_name: formData.name,
+      birth_date: formData.birthDate,
+      age: parseInt(formData.age),
+      location: formData.location,
+      ad_type: formData.adType,
+      cost: parseFloat(formData.cost),
+      duration_days: parseInt(formData.duration),
+      status: 'pending'
+    });
+
+    setIsLoading(false);
+    setSubmitted(true);
   };
 
-  const isDark = theme === 'dark';
-
-  if (submitted) {
-    return (
-      <div className={`min-h-screen ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-        <Sidebar currentPage="RequestAd" theme={theme} />
-        
-        <main className="lg:ml-72 p-6 lg:p-10">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-white" />
-            </div>
-            <h1 className={`text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Request Submitted!
-            </h1>
-            <p className={`text-lg mb-8 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Please wait, contact DevX at <strong>starproducer@atomicmail.io</strong> to check if the admin agrees!
-            </p>
-            <Button
-              onClick={() => {
-                setSubmitted(false);
-                setFormData({
-                  requester_name: '',
-                  birth_date: '',
-                  age: '',
-                  location: '',
-                  ad_type: 'popup',
-                  cost: '',
-                  duration_days: '',
-                  image_url: '',
-                  target_url: ''
-                });
-              }}
-              className="bg-gradient-to-r from-purple-600 to-blue-600"
-            >
-              Submit Another Request
-            </Button>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-      <Sidebar currentPage="RequestAd" theme={theme} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+      <Sidebar currentPage="RequestAd" onLogoClick={handleLogoClick} />
       
       <main className="lg:ml-72 p-6 lg:p-10">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Request an Ad
-            </h1>
-            <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Fill out the form below to request an advertisement
-            </p>
+          {/* Header */}
+          <div className="mb-8 pt-12 lg:pt-0">
+            <h1 className="text-3xl font-bold text-white mb-2">Request an Ad</h1>
+            <p className="text-slate-400">Advertise your product or service on ShrinkPro</p>
           </div>
 
-          <Card className={`p-8 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white'}`}>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className={isDark ? 'text-white' : ''}>Your Name *</Label>
-                  <Input
-                    value={formData.requester_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, requester_name: e.target.value }))}
-                    required
-                    className={isDark ? 'bg-slate-800 border-slate-700 text-white' : ''}
-                  />
+          {!submitted ? (
+            <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+              <CardContent className="p-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Name */}
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Your Name *</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
+                      placeholder="John Doe"
+                      required
+                      className="h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Birth Date */}
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Birth Date *</Label>
+                    <Input
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={(e) => handleChange('birthDate', e.target.value)}
+                      required
+                      className="h-12 bg-white/5 border-white/10 text-white rounded-xl"
+                    />
+                  </div>
+
+                  {/* Age */}
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Age *</Label>
+                    <Input
+                      type="number"
+                      value={formData.age}
+                      onChange={(e) => handleChange('age', e.target.value)}
+                      placeholder="25"
+                      required
+                      min="18"
+                      className="h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Where are you from? *</Label>
+                    <Input
+                      value={formData.location}
+                      onChange={(e) => handleChange('location', e.target.value)}
+                      placeholder="City, Country"
+                      required
+                      className="h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Ad Type */}
+                  <div>
+                    <Label className="text-slate-300 mb-4 block">Type of Ad *</Label>
+                    <RadioGroup
+                      value={formData.adType}
+                      onValueChange={(value) => handleChange('adType', value)}
+                      className="grid grid-cols-2 gap-4"
+                    >
+                      <div className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        formData.adType === 'popup' 
+                          ? 'border-cyan-500 bg-cyan-500/10' 
+                          : 'border-white/10 bg-white/5 hover:border-white/20'
+                      }`}>
+                        <RadioGroupItem value="popup" id="popup" className="sr-only" />
+                        <label htmlFor="popup" className="cursor-pointer">
+                          <p className="text-white font-medium mb-1">Pop-up Ad</p>
+                          <p className="text-slate-400 text-sm">Opens in new tab after delay</p>
+                        </label>
+                      </div>
+                      <div className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        formData.adType === 'homepage' 
+                          ? 'border-purple-500 bg-purple-500/10' 
+                          : 'border-white/10 bg-white/5 hover:border-white/20'
+                      }`}>
+                        <RadioGroupItem value="homepage" id="homepage" className="sr-only" />
+                        <label htmlFor="homepage" className="cursor-pointer">
+                          <p className="text-white font-medium mb-1">Homepage Ad</p>
+                          <p className="text-slate-400 text-sm">Displayed on dashboard</p>
+                        </label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Cost */}
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Budget (USD) *</Label>
+                    <Input
+                      type="number"
+                      value={formData.cost}
+                      onChange={(e) => handleChange('cost', e.target.value)}
+                      placeholder="100"
+                      required
+                      min="1"
+                      className="h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Duration */}
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Duration *</Label>
+                    <Select
+                      value={formData.duration}
+                      onValueChange={(value) => handleChange('duration', value)}
+                    >
+                      <SelectTrigger className="h-12 bg-white/5 border-white/10 text-white rounded-xl">
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        <SelectItem value="7">7 days</SelectItem>
+                        <SelectItem value="14">14 days</SelectItem>
+                        <SelectItem value="30">30 days</SelectItem>
+                        <SelectItem value="60">60 days</SelectItem>
+                        <SelectItem value="90">90 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full h-14 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-xl text-lg"
+                  >
+                    {isLoading ? (
+                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Megaphone className="w-5 h-5 mr-2" />
+                        Submit Request
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+              <CardContent className="p-8 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Check className="w-10 h-10 text-white" />
+                </div>
+                
+                <h2 className="text-2xl font-bold text-white mb-4">Request Submitted!</h2>
+                
+                <p className="text-slate-400 mb-6">
+                  Please wait for admin approval. Contact DevX to check the status of your request.
+                </p>
+
+                <div className="bg-white/5 rounded-xl p-5 text-left">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Email</p>
+                      <a href="mailto:starproducer@atomicmail.io" className="text-cyan-400 hover:underline">
+                        starproducer@atomicmail.io
+                      </a>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className={isDark ? 'text-white' : ''}>Birth Date *</Label>
-                  <Input
-                    type="date"
-                    value={formData.birth_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, birth_date: e.target.value }))}
-                    required
-                    className={isDark ? 'bg-slate-800 border-slate-700 text-white' : ''}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className={isDark ? 'text-white' : ''}>Age *</Label>
-                  <Input
-                    type="number"
-                    value={formData.age}
-                    onChange={(e) => setFormData(prev => ({ ...prev, age: parseInt(e.target.value) }))}
-                    required
-                    className={isDark ? 'bg-slate-800 border-slate-700 text-white' : ''}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className={isDark ? 'text-white' : ''}>Where are you from? *</Label>
-                  <Input
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    required
-                    className={isDark ? 'bg-slate-800 border-slate-700 text-white' : ''}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label className={isDark ? 'text-white' : ''}>Ad Type *</Label>
-                <RadioGroup
-                  value={formData.ad_type}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, ad_type: value }))}
-                  className="flex gap-4"
+                <Button
+                  onClick={() => {
+                    setSubmitted(false);
+                    setFormData({
+                      name: '',
+                      birthDate: '',
+                      age: '',
+                      location: '',
+                      adType: 'popup',
+                      cost: '',
+                      duration: ''
+                    });
+                  }}
+                  variant="outline"
+                  className="mt-6 border-white/10 text-slate-400 hover:text-white"
                 >
-                  <label className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    formData.ad_type === 'popup'
-                      ? 'border-purple-500 bg-purple-50'
-                      : isDark
-                      ? 'border-slate-700 bg-slate-800'
-                      : 'border-slate-200'
-                  }`}>
-                    <RadioGroupItem value="popup" />
-                    <div>
-                      <p className={`font-medium ${isDark && formData.ad_type !== 'popup' ? 'text-white' : 'text-slate-900'}`}>
-                        Pop Up Ad
-                      </p>
-                      <p className={`text-sm ${isDark && formData.ad_type !== 'popup' ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Opens in new tab after delay
-                      </p>
-                    </div>
-                  </label>
-                  <label className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    formData.ad_type === 'homepage'
-                      ? 'border-purple-500 bg-purple-50'
-                      : isDark
-                      ? 'border-slate-700 bg-slate-800'
-                      : 'border-slate-200'
-                  }`}>
-                    <RadioGroupItem value="homepage" />
-                    <div>
-                      <p className={`font-medium ${isDark && formData.ad_type !== 'homepage' ? 'text-white' : 'text-slate-900'}`}>
-                        Home Page Ad
-                      </p>
-                      <p className={`text-sm ${isDark && formData.ad_type !== 'homepage' ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Displayed on dashboard
-                      </p>
-                    </div>
-                  </label>
-                </RadioGroup>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className={isDark ? 'text-white' : ''}>Cost (USD) *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.cost}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) }))}
-                    required
-                    className={isDark ? 'bg-slate-800 border-slate-700 text-white' : ''}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className={isDark ? 'text-white' : ''}>Duration (Days) *</Label>
-                  <Input
-                    type="number"
-                    value={formData.duration_days}
-                    onChange={(e) => setFormData(prev => ({ ...prev, duration_days: parseInt(e.target.value) }))}
-                    required
-                    className={isDark ? 'bg-slate-800 border-slate-700 text-white' : ''}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className={isDark ? 'text-white' : ''}>Target URL</Label>
-                <Input
-                  type="url"
-                  placeholder="https://your-website.com"
-                  value={formData.target_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, target_url: e.target.value }))}
-                  className={isDark ? 'bg-slate-800 border-slate-700 text-white' : ''}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className={isDark ? 'text-white' : ''}>Ad Image</Label>
-                <div className={`border-2 border-dashed rounded-xl p-6 text-center ${isDark ? 'border-slate-700' : 'border-slate-300'}`}>
-                  {formData.image_url ? (
-                    <div>
-                      <img 
-                        src={formData.image_url} 
-                        alt="Ad preview" 
-                        className="max-h-40 mx-auto rounded-lg mb-3"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
-                        className={isDark ? 'border-slate-700' : ''}
-                      >
-                        Remove Image
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleImageUpload}
-                      />
-                      {uploading ? (
-                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-500" />
-                      ) : (
-                        <>
-                          <ImageIcon className={`w-12 h-12 mx-auto mb-2 ${isDark ? 'text-slate-600' : 'text-slate-400'}`} />
-                          <p className={`${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                            Click to upload an image
-                          </p>
-                        </>
-                      )}
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={submitMutation.isPending}
-                className="w-full h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-lg font-semibold rounded-xl"
-              >
-                {submitMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Megaphone className="w-5 h-5 mr-2" />
-                    Submit Ad Request
-                  </>
-                )}
-              </Button>
-            </form>
-          </Card>
+                  Submit Another Request
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>

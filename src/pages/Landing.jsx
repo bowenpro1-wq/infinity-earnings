@@ -2,35 +2,43 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Link2, ArrowRight, Loader2, Copy, Check, ExternalLink } from "lucide-react";
+import { Link2, ArrowRight, Zap, Shield, BarChart3 } from "lucide-react";
 import { base44 } from '@/api/base44Client';
-import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 export default function Landing() {
   const [url, setUrl] = useState('');
-  const [shortUrl, setShortUrl] = useState('');
+  const [shortenedUrl, setShortenedUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const navigate = useNavigate();
+  const [error, setError] = useState('');
 
   const generateShortCode = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
     for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return code;
+    return result;
   };
 
   const handleShorten = async () => {
-    if (!url) return;
-    
+    if (!url) {
+      setError('Please enter a URL');
+      return;
+    }
+
+    let processedUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      processedUrl = 'https://' + url;
+    }
+
     setIsLoading(true);
+    setError('');
+
     const shortCode = generateShortCode();
     
     await base44.entities.ShortenedLink.create({
-      original_url: url.startsWith('http') ? url : `https://${url}`,
+      original_url: processedUrl,
       short_code: shortCode,
       clicks: 0,
       unique_clicks: 0,
@@ -38,113 +46,128 @@ export default function Landing() {
       is_active: true
     });
 
-    setShortUrl(`shrinkpro.xyz/${shortCode}`);
+    setShortenedUrl(`shrinkpro.xyz/${shortCode}`);
     setIsLoading(false);
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(`https://${shortUrl}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleContinue = () => {
-    base44.auth.redirectToLogin(createPageUrl('Home'));
+  const handleVisit = () => {
+    window.location.href = createPageUrl('Home');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40"></div>
-      
-      <Card className="w-full max-w-xl bg-white/5 backdrop-blur-xl border-white/10 p-8 md:p-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-        
-        <div className="relative z-10">
-          <div className="flex items-center justify-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25">
-              <Link2 className="w-8 h-8 text-white" />
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Header */}
+      <header className="relative z-10 p-6">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-xl flex items-center justify-center">
+            <Link2 className="w-5 h-5 text-white" />
           </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold text-center text-white mb-4 tracking-tight">
-            shrinkpro<span className="text-purple-400">.xyz</span>
+          <span className="text-2xl font-bold text-white tracking-tight">ShrinkPro</span>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="relative z-10 flex flex-col items-center justify-center px-4 pt-20 pb-32">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            Shorten a URL
+            <span className="block bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Right Now!
+            </span>
           </h1>
-          
-          <p className="text-xl md:text-2xl text-center text-white/80 mb-10 font-light">
-            Shorten a URL right now!
-          </p>
-
-          {!shortUrl ? (
-            <div className="space-y-4">
-              <div className="relative">
-                <Input
-                  type="url"
-                  placeholder="Enter your long URL here..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="w-full h-14 bg-white/10 border-white/20 text-white placeholder:text-white/40 rounded-xl px-5 text-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-              
-              <Button
-                onClick={handleShorten}
-                disabled={!url || isLoading}
-                className="w-full h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-lg font-semibold rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/30"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    Shorten URL
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="bg-white/10 rounded-xl p-5 border border-white/20">
-                <p className="text-white/60 text-sm mb-2">Your shortened URL:</p>
-                <div className="flex items-center gap-3">
-                  <p className="text-white text-lg font-medium flex-1 truncate">{shortUrl}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleCopy}
-                    className="text-white hover:bg-white/10"
-                  >
-                    {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={() => window.open(url.startsWith('http') ? url : `https://${url}`, '_blank')}
-                  variant="outline"
-                  className="w-full h-12 border-white/20 text-white hover:bg-white/10 rounded-xl"
-                >
-                  <ExternalLink className="mr-2 w-4 h-4" />
-                  Visit Original URL
-                </Button>
-                
-                <Button
-                  onClick={handleContinue}
-                  className="w-full h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-lg font-semibold rounded-xl shadow-lg shadow-purple-500/25"
-                >
-                  Continue to Dashboard
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <p className="text-white/40 text-center text-sm mt-8">
-            Create an account to manage your links and earn money
+          <p className="text-lg text-slate-400 max-w-xl mx-auto">
+            Transform long URLs into powerful, trackable short links. Earn money with every click.
           </p>
         </div>
-      </Card>
+
+        {/* URL Input Card */}
+        <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border-white/10 p-2 rounded-2xl shadow-2xl">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 relative">
+              <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Paste your long URL here..."
+                className="w-full h-14 pl-12 pr-4 bg-white/10 border-0 text-white placeholder:text-slate-500 rounded-xl text-lg focus-visible:ring-2 focus-visible:ring-cyan-400"
+              />
+            </div>
+            <Button
+              onClick={handleShorten}
+              disabled={isLoading}
+              className="h-14 px-8 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-purple-500/25"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  Shorten <ArrowRight className="ml-2 w-5 h-5" />
+                </>
+              )}
+            </Button>
+          </div>
+
+          {error && (
+            <p className="text-red-400 text-sm mt-3 px-2">{error}</p>
+          )}
+
+          {shortenedUrl && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl border border-green-500/30">
+              <p className="text-sm text-green-300 mb-2">Your shortened URL is ready!</p>
+              <div className="flex items-center gap-3">
+                <code className="flex-1 text-lg text-white font-mono bg-black/30 px-4 py-2 rounded-lg">
+                  {shortenedUrl}
+                </code>
+                <Button
+                  onClick={() => navigator.clipboard.writeText('https://' + shortenedUrl)}
+                  variant="outline"
+                  className="border-green-500/50 text-green-300 hover:bg-green-500/20"
+                >
+                  Copy
+                </Button>
+              </div>
+              <Button
+                onClick={handleVisit}
+                className="mt-4 w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white"
+              >
+                Continue to Dashboard
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        {/* Features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 max-w-4xl w-full px-4">
+          <div className="text-center p-6">
+            <div className="w-14 h-14 bg-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-7 h-7 text-cyan-400" />
+            </div>
+            <h3 className="text-white font-semibold text-lg mb-2">Lightning Fast</h3>
+            <p className="text-slate-400 text-sm">Instant URL shortening with zero delays</p>
+          </div>
+          <div className="text-center p-6">
+            <div className="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-7 h-7 text-purple-400" />
+            </div>
+            <h3 className="text-white font-semibold text-lg mb-2">Secure & Reliable</h3>
+            <p className="text-slate-400 text-sm">Your links are protected and always available</p>
+          </div>
+          <div className="text-center p-6">
+            <div className="w-14 h-14 bg-pink-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <BarChart3 className="w-7 h-7 text-pink-400" />
+            </div>
+            <h3 className="text-white font-semibold text-lg mb-2">Earn Money</h3>
+            <p className="text-slate-400 text-sm">Get paid for every unique click on your links</p>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
