@@ -191,7 +191,7 @@ export default function Statistics() {
                           {links.map((link) => (
                             <tr key={link.id} className="border-b border-white/5 hover:bg-white/5">
                               <td className="py-3 px-4">
-                                <code className="text-cyan-400">/{link.short_code}</code>
+                                <code className="text-cyan-400 text-xs">/Redirect?code={link.short_code}</code>
                               </td>
                               <td className="py-3 px-4 text-right text-white">{link.clicks || 0}</td>
                               <td className="py-3 px-4 text-right text-white">{link.unique_clicks || 0}</td>

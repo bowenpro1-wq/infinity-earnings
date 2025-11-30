@@ -74,7 +74,7 @@ export default function ShortenNew() {
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(`https://shrinkpro.xyz/${result.shortCode}`);
+    navigator.clipboard.writeText(`${window.location.origin}/Redirect?code=${result.shortCode}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -213,9 +213,9 @@ export default function ShortenNew() {
                 <h2 className="text-2xl font-bold text-white mb-2">Link Created!</h2>
                 <p className="text-slate-400 mb-6">Your shortened URL is ready to use</p>
 
-                <div className="bg-white/5 rounded-xl p-4 mb-6">
-                  <code className="text-xl text-cyan-400 font-mono">
-                    shrinkpro.xyz/{result.shortCode}
+                <div className="bg-white/5 rounded-xl p-4 mb-6 overflow-hidden">
+                  <code className="text-sm text-cyan-400 font-mono break-all">
+                    {window.location.origin}/Redirect?code={result.shortCode}
                   </code>
                 </div>
 

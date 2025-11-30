@@ -46,7 +46,8 @@ export default function Landing() {
       is_active: true
     });
 
-    setShortenedUrl(`shrinkpro.xyz/${shortCode}`);
+    const baseUrl = window.location.origin;
+    setShortenedUrl(`${baseUrl}/Redirect?code=${shortCode}`);
     setIsLoading(false);
   };
 
@@ -126,7 +127,7 @@ export default function Landing() {
                   {shortenedUrl}
                 </code>
                 <Button
-                  onClick={() => navigator.clipboard.writeText('https://' + shortenedUrl)}
+                  onClick={() => navigator.clipboard.writeText(shortenedUrl)}
                   variant="outline"
                   className="border-green-500/50 text-green-300 hover:bg-green-500/20"
                 >

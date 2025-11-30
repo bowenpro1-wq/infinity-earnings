@@ -130,7 +130,7 @@ export default function Home() {
                   {links.slice(0, 5).map((link) => (
                     <div key={link.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium truncate">shrinkpro.xyz/{link.short_code}</p>
+                        <p className="text-white font-medium truncate text-sm">{window.location.host}/Redirect?code={link.short_code}</p>
                         <p className="text-sm text-slate-400 truncate">{link.original_url}</p>
                       </div>
                       <div className="text-right ml-4">

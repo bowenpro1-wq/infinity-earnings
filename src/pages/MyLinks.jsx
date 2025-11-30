@@ -62,7 +62,7 @@ export default function MyLinks() {
   };
 
   const copyToClipboard = (shortCode, id) => {
-    navigator.clipboard.writeText(`https://shrinkpro.xyz/${shortCode}`);
+    navigator.clipboard.writeText(`${window.location.origin}/Redirect?code=${shortCode}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -136,8 +136,8 @@ export default function MyLinks() {
                           </div>
                           
                           <div className="flex items-center gap-2 mb-2">
-                            <code className="text-cyan-400 font-mono text-lg">
-                              shrinkpro.xyz/{link.short_code}
+                            <code className="text-cyan-400 font-mono text-sm break-all">
+                              {window.location.origin}/Redirect?code={link.short_code}
                             </code>
                             <Button
                               variant="ghost"
