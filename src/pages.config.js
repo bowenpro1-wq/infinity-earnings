@@ -10,6 +10,7 @@ import Help from './pages/Help';
 import AdminLogin from './pages/AdminLogin';
 import AdminPanel from './pages/AdminPanel';
 import Verification from './pages/Verification';
+import Redirect from './pages/Redirect';
 
 
 export const PAGES = {
@@ -25,6 +26,7 @@ export const PAGES = {
     "AdminLogin": AdminLogin,
     "AdminPanel": AdminPanel,
     "Verification": Verification,
+    "Redirect": Redirect,
 }
 
 export const pagesConfig = {
