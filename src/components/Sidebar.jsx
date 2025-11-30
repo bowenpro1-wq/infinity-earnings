@@ -11,7 +11,8 @@ import {
   HelpCircle,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Crown
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
     { name: 'MyLinks', label: 'My Shortened Links', icon: Link2 },
     { name: 'ShortenNew', label: 'Shorten New Link', icon: PlusCircle },
     { name: 'Withdraw', label: 'Withdraw Payments', icon: Wallet },
+    { name: 'GoPro', label: 'Go Pro', icon: Crown, highlight: true },
     { name: 'Settings', label: 'Settings', icon: Settings },
     { name: 'RequestAd', label: 'Request an Ad', icon: Megaphone },
     { name: 'Statistics', label: 'Statistics', icon: BarChart3 },
@@ -61,9 +63,11 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
             onClick={onLogoClick}
             className="flex items-center gap-3 mb-10 cursor-pointer group"
           >
-            <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
-              <Link2 className="w-6 h-6 text-white" />
-            </div>
+            <img 
+              src="https://s3-eu-west-1.amazonaws.com/tpd/logos/5f5fa17054b2610001bcd1f9/0x0.png" 
+              alt="ShrinkPro" 
+              className="w-12 h-12 rounded-xl transition-transform group-hover:scale-105"
+            />
             <div>
               <span className="text-xl font-bold text-white block">ShrinkPro</span>
               <span className="text-xs text-slate-500">URL Shortener</span>
@@ -85,11 +89,13 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
                     flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                     ${isActive 
                       ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-white/10' 
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      : item.highlight 
+                        ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 border border-yellow-500/20'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }
                   `}
                 >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : ''}`} />
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : item.highlight ? 'text-yellow-400' : ''}`} />
                   <span className="font-medium">{item.label}</span>
                   {isActive && <ChevronRight className="w-4 h-4 ml-auto text-cyan-400" />}
                 </Link>

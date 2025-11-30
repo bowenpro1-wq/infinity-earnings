@@ -48,7 +48,7 @@ export default function Withdraw() {
 
   const totalEarnings = links.reduce((sum, link) => sum + (link.earnings || 0), 0);
   const withdrawnAmount = withdrawals
-    .filter(w => w.status === 'completed')
+    .filter(w => w.status === 'completed' || w.status === 'pending')
     .reduce((sum, w) => sum + (w.amount || 0), 0);
   const availableBalance = totalEarnings - withdrawnAmount;
 
