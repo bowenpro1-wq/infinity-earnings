@@ -13,8 +13,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
   Shield, Megaphone, Wallet, Search, Plus, Trash2, 
-  Check, X, ExternalLink, ArrowLeft
+  Check, X, ExternalLink, ArrowLeft, Smartphone, Monitor
 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AdminPanel() {
   const [searchPassword, setSearchPassword] = useState('');
@@ -26,11 +27,12 @@ export default function AdminPanel() {
     position: 'bottom-right',
     width: 300,
     height: 250,
-    wait_times: [5],
+    wait_steps: [{ wait_time: 5, target_url: '', button_text: '', button_url: '', require_button: false }],
     wait_message: 'Please wait...',
     is_active: true
   });
   const [showPreview, setShowPreview] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState('desktop');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -63,7 +65,7 @@ export default function AdminPanel() {
         position: 'bottom-right',
         width: 300,
         height: 250,
-        wait_times: [5],
+        wait_steps: [{ wait_time: 5, target_url: '', button_text: '', button_url: '', require_button: false }],
         wait_message: 'Please wait...',
         is_active: true
       });
@@ -261,33 +263,117 @@ export default function AdminPanel() {
                         </div>
 
                         {showPreview && (
-                          <div className="md:col-span-2 relative bg-slate-800 rounded-xl h-64 border border-white/10 overflow-hidden">
-                            <p className="absolute top-2 left-2 text-xs text-slate-500">Homepage Preview</p>
-                            {(() => {
-                              const positionStyles = {
-                                'top-left': 'top-2 left-2',
-                                'top-center': 'top-2 left-1/2 -translate-x-1/2',
-                                'top-right': 'top-2 right-2',
-                                'middle-left': 'top-1/2 -translate-y-1/2 left-2',
-                                'middle-center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-                                'middle-right': 'top-1/2 -translate-y-1/2 right-2',
-                                'bottom-left': 'bottom-2 left-2',
-                                'bottom-center': 'bottom-2 left-1/2 -translate-x-1/2',
-                                'bottom-right': 'bottom-2 right-2'
-                              };
-                              const scale = 0.3;
-                              return (
-                                <div 
-                                  className={`absolute ${positionStyles[newAd.position]} bg-gradient-to-br from-cyan-500/50 to-purple-500/50 border-2 border-cyan-400 rounded flex items-center justify-center`}
-                                  style={{ 
-                                    width: (newAd.width || 300) * scale, 
-                                    height: (newAd.height || 250) * scale 
-                                  }}
-                                >
-                                  <span className="text-white text-xs font-medium">AD</span>
+                          <div className="md:col-span-2">
+                            {/* Device Toggle */}
+                            <div className="flex gap-2 mb-3">
+                              <Button
+                                type="button"
+                                variant={previewDevice === 'desktop' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setPreviewDevice('desktop')}
+                                className={previewDevice === 'desktop' ? 'bg-cyan-500' : 'border-white/20 text-white'}
+                              >
+                                <Monitor className="w-4 h-4 mr-1" /> Desktop
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={previewDevice === 'mobile' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setPreviewDevice('mobile')}
+                                className={previewDevice === 'mobile' ? 'bg-cyan-500' : 'border-white/20 text-white'}
+                              >
+                                <Smartphone className="w-4 h-4 mr-1" /> iPhone
+                              </Button>
+                            </div>
+
+                            {/* Device Frame */}
+                            <div className="flex justify-center">
+                              {previewDevice === 'mobile' ? (
+                                <div className="relative w-[280px] h-[560px] bg-black rounded-[3rem] p-3 border-4 border-slate-700">
+                                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-b-2xl z-10" />
+                                  <div className="w-full h-full bg-gradient-to-br from-slate-900 to-purple-950 rounded-[2.5rem] overflow-hidden relative">
+                                    <p className="absolute top-8 left-3 text-[8px] text-slate-500">iPhone Preview</p>
+                                    {(() => {
+                                      const positionStyles = {
+                                        'top-left': 'top-12 left-2',
+                                        'top-center': 'top-12 left-1/2 -translate-x-1/2',
+                                        'top-right': 'top-12 right-2',
+                                        'middle-left': 'top-1/2 -translate-y-1/2 left-2',
+                                        'middle-center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+                                        'middle-right': 'top-1/2 -translate-y-1/2 right-2',
+                                        'bottom-left': 'bottom-8 left-2',
+                                        'bottom-center': 'bottom-8 left-1/2 -translate-x-1/2',
+                                        'bottom-right': 'bottom-8 right-2'
+                                      };
+                                      const scale = 0.2;
+                                      return (
+                                        <div 
+                                          className={`absolute ${positionStyles[newAd.position]} border-2 border-cyan-400 rounded overflow-hidden`}
+                                          style={{ width: Math.min((newAd.width || 300) * scale, 80), height: Math.min((newAd.height || 250) * scale, 60) }}
+                                        >
+                                          {newAd.image_url ? (
+                                            <img src={newAd.image_url} alt="Ad" className="w-full h-full object-cover" />
+                                          ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-cyan-500/50 to-purple-500/50 flex items-center justify-center">
+                                              <span className="text-white text-[6px] font-medium">AD</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
                                 </div>
-                              );
-                            })()}
+                              ) : (
+                                <div className="relative w-full max-w-lg">
+                                  <div className="bg-slate-700 rounded-t-xl p-2 flex items-center gap-2">
+                                    <div className="flex gap-1">
+                                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                                    </div>
+                                    <div className="flex-1 bg-slate-600 rounded h-4 px-2 flex items-center">
+                                      <span className="text-[8px] text-slate-400">shrinkpro.com</span>
+                                    </div>
+                                  </div>
+                                  <div className="bg-gradient-to-br from-slate-900 to-purple-950 h-64 relative border-x-4 border-b-4 border-slate-700 rounded-b-xl overflow-hidden">
+                                    <p className="absolute top-2 left-2 text-[10px] text-slate-500">Desktop Preview</p>
+                                    {(() => {
+                                      const positionStyles = {
+                                        'top-left': 'top-6 left-2',
+                                        'top-center': 'top-6 left-1/2 -translate-x-1/2',
+                                        'top-right': 'top-6 right-2',
+                                        'middle-left': 'top-1/2 -translate-y-1/2 left-2',
+                                        'middle-center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+                                        'middle-right': 'top-1/2 -translate-y-1/2 right-2',
+                                        'bottom-left': 'bottom-2 left-2',
+                                        'bottom-center': 'bottom-2 left-1/2 -translate-x-1/2',
+                                        'bottom-right': 'bottom-2 right-2'
+                                      };
+                                      const scale = 0.3;
+                                      return (
+                                        <div 
+                                          className={`absolute ${positionStyles[newAd.position]} border-2 border-cyan-400 rounded overflow-hidden`}
+                                          style={{ width: (newAd.width || 300) * scale, height: (newAd.height || 250) * scale }}
+                                        >
+                                          {newAd.image_url ? (
+                                            <img src={newAd.image_url} alt="Ad" className="w-full h-full object-cover" />
+                                          ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-cyan-500/50 to-purple-500/50 flex items-center justify-center">
+                                              <span className="text-white text-xs font-medium">AD</span>
+                                            </div>
+                                          )}
+                                          {newAd.description && (
+                                            <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1">
+                                              <p className="text-white text-[6px] text-center truncate">{newAd.description}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </>
@@ -296,59 +382,6 @@ export default function AdminPanel() {
                     {newAd.ad_type === 'popup' && (
                       <>
                         <div className="md:col-span-2">
-                          <Label className="text-slate-300 mb-2 block">Wait Times (seconds)</Label>
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            {newAd.wait_times.map((time, index) => (
-                              <div key={index} className="flex items-center gap-1 bg-white/10 rounded-lg px-3 py-1">
-                                <span className="text-cyan-400 font-mono">{time}s</span>
-                                <button 
-                                  type="button"
-                                  onClick={() => {
-                                    const newTimes = newAd.wait_times.filter((_, i) => i !== index);
-                                    setNewAd({ ...newAd, wait_times: newTimes.length ? newTimes : [5] });
-                                  }}
-                                  className="text-red-400 hover:text-red-300 ml-1"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex gap-2">
-                            <Input
-                              type="number"
-                              placeholder="Add wait time"
-                              className="bg-white/5 border-white/10 text-white w-32"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  const val = parseInt(e.target.value);
-                                  if (val > 0) {
-                                    setNewAd({ ...newAd, wait_times: [...newAd.wait_times, val] });
-                                    e.target.value = '';
-                                  }
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="border-white/20 text-white"
-                              onClick={(e) => {
-                                const input = e.target.parentElement.querySelector('input');
-                                const val = parseInt(input.value);
-                                if (val > 0) {
-                                  setNewAd({ ...newAd, wait_times: [...newAd.wait_times, val] });
-                                  input.value = '';
-                                }
-                              }}
-                            >
-                              <Plus className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <p className="text-slate-500 text-xs mt-1">Each wait time opens a new tab. Add multiple for multiple popups.</p>
-                        </div>
-                        <div className="md:col-span-2">
                           <Label className="text-slate-300 mb-2 block">Wait Message</Label>
                           <Input
                             value={newAd.wait_message}
@@ -356,6 +389,108 @@ export default function AdminPanel() {
                             placeholder="Please wait while we prepare your link..."
                             className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                           />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <Label className="text-slate-300 mb-2 block">Wait Steps</Label>
+                          <div className="space-y-4">
+                            {newAd.wait_steps.map((step, index) => (
+                              <div key={index} className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-cyan-400 font-semibold">Step {index + 1}</span>
+                                  {newAd.wait_steps.length > 1 && (
+                                    <button 
+                                      type="button"
+                                      onClick={() => {
+                                        const newSteps = newAd.wait_steps.filter((_, i) => i !== index);
+                                        setNewAd({ ...newAd, wait_steps: newSteps });
+                                      }}
+                                      className="text-red-400 hover:text-red-300"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label className="text-slate-400 text-xs mb-1 block">Wait Time (sec)</Label>
+                                    <Input
+                                      type="number"
+                                      value={step.wait_time}
+                                      onChange={(e) => {
+                                        const newSteps = [...newAd.wait_steps];
+                                        newSteps[index].wait_time = parseInt(e.target.value) || 5;
+                                        setNewAd({ ...newAd, wait_steps: newSteps });
+                                      }}
+                                      className="bg-white/5 border-white/10 text-white h-9"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-slate-400 text-xs mb-1 block">Target URL</Label>
+                                    <Input
+                                      value={step.target_url}
+                                      onChange={(e) => {
+                                        const newSteps = [...newAd.wait_steps];
+                                        newSteps[index].target_url = e.target.value;
+                                        setNewAd({ ...newAd, wait_steps: newSteps });
+                                      }}
+                                      placeholder="https://..."
+                                      className="bg-white/5 border-white/10 text-white h-9 placeholder:text-slate-600"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-slate-400 text-xs mb-1 block">Button Text (optional)</Label>
+                                    <Input
+                                      value={step.button_text}
+                                      onChange={(e) => {
+                                        const newSteps = [...newAd.wait_steps];
+                                        newSteps[index].button_text = e.target.value;
+                                        setNewAd({ ...newAd, wait_steps: newSteps });
+                                      }}
+                                      placeholder="Click Here"
+                                      className="bg-white/5 border-white/10 text-white h-9 placeholder:text-slate-600"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-slate-400 text-xs mb-1 block">Button URL</Label>
+                                    <Input
+                                      value={step.button_url}
+                                      onChange={(e) => {
+                                        const newSteps = [...newAd.wait_steps];
+                                        newSteps[index].button_url = e.target.value;
+                                        setNewAd({ ...newAd, wait_steps: newSteps });
+                                      }}
+                                      placeholder="https://..."
+                                      className="bg-white/5 border-white/10 text-white h-9 placeholder:text-slate-600"
+                                    />
+                                  </div>
+                                  <div className="col-span-2 flex items-center gap-2">
+                                    <Checkbox
+                                      checked={step.require_button}
+                                      onCheckedChange={(checked) => {
+                                        const newSteps = [...newAd.wait_steps];
+                                        newSteps[index].require_button = checked;
+                                        setNewAd({ ...newAd, wait_steps: newSteps });
+                                      }}
+                                      className="border-white/30"
+                                    />
+                                    <Label className="text-slate-400 text-xs">Must click button before proceeding</Label>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full border-dashed border-white/20 text-slate-400 hover:text-white"
+                              onClick={() => setNewAd({ 
+                                ...newAd, 
+                                wait_steps: [...newAd.wait_steps, { wait_time: 5, target_url: '', button_text: '', button_url: '', require_button: false }]
+                              })}
+                            >
+                              <Plus className="w-4 h-4 mr-2" /> Add Another Step
+                            </Button>
+                          </div>
                         </div>
                       </>
                     )}
@@ -392,7 +527,7 @@ export default function AdminPanel() {
                             <p className="text-white font-medium truncate max-w-xs">{ad.target_url}</p>
                             <p className="text-slate-400 text-sm">
                                   {ad.ad_type === 'popup' 
-                                    ? `Wait ${(ad.wait_times || [5]).join('s → ')}s - "${ad.wait_message || 'Please wait...'}"` 
+                                    ? `${(ad.wait_steps || []).length || 1} step(s) - "${ad.wait_message || 'Please wait...'}"` 
                                     : `${ad.position} (${ad.width || 300}x${ad.height || 250})`}
                                 </p>
                           </div>
