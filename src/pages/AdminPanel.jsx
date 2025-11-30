@@ -22,11 +22,14 @@ export default function AdminPanel() {
     ad_type: 'popup',
     image_url: '',
     target_url: '',
-    position: 'center',
-    delay_seconds: 5,
+    position: 'bottom-right',
+    width: 300,
+    height: 250,
+    wait_times: [5],
     wait_message: 'Please wait...',
     is_active: true
   });
+  const [waitTimeInput, setWaitTimeInput] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -55,12 +58,15 @@ export default function AdminPanel() {
         ad_type: 'popup',
         image_url: '',
         target_url: '',
-        position: 'center',
-        delay_seconds: 5,
+        position: 'bottom-right',
+        width: 300,
+        height: 250,
+        wait_times: [5],
         wait_message: 'Please wait...',
         is_active: true
       });
-    }
+      setWaitTimeInput('');
+      }
   });
 
   const deleteAdMutation = useMutation({
@@ -148,70 +154,154 @@ export default function AdminPanel() {
                   </div>
 
                   {newAd.ad_type === 'homepage' && (
-                    <div>
-                      <Label className="text-slate-300 mb-2 block">Position</Label>
-                      <Select
-                        value={newAd.position}
-                        onValueChange={(v) => setNewAd({ ...newAd, position: v })}
-                      >
-                        <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10">
-                          <SelectItem value="top">Top</SelectItem>
-                          <SelectItem value="center">Center</SelectItem>
-                          <SelectItem value="bottom">Bottom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                        <>
+                          <div>
+                            <Label className="text-slate-300 mb-2 block">Position</Label>
+                            <Select
+                              value={newAd.position}
+                              onValueChange={(v) => setNewAd({ ...newAd, position: v })}
+                            >
+                              <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-slate-900 border-white/10">
+                                <SelectItem value="top-left">Top Left</SelectItem>
+                                <SelectItem value="top-center">Top Center</SelectItem>
+                                <SelectItem value="top-right">Top Right</SelectItem>
+                                <SelectItem value="middle-left">Middle Left</SelectItem>
+                                <SelectItem value="middle-center">Middle Center</SelectItem>
+                                <SelectItem value="middle-right">Middle Right</SelectItem>
+                                <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                                <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                                <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-slate-300 mb-2 block">Width (px)</Label>
+                            <Input
+                              type="number"
+                              value={newAd.width}
+                              onChange={(e) => setNewAd({ ...newAd, width: parseInt(e.target.value) })}
+                              placeholder="300"
+                              className="bg-white/5 border-white/10 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-slate-300 mb-2 block">Height (px)</Label>
+                            <Input
+                              type="number"
+                              value={newAd.height}
+                              onChange={(e) => setNewAd({ ...newAd, height: parseInt(e.target.value) })}
+                              placeholder="250"
+                              className="bg-white/5 border-white/10 text-white"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label className="text-slate-300 mb-2 block">Image URL *</Label>
+                            <Input
+                              value={newAd.image_url}
+                              onChange={(e) => setNewAd({ ...newAd, image_url: e.target.value })}
+                              placeholder="https://example.com/ad-image.jpg"
+                              className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                            />
+                          </div>
+                          {/* Preview */}
+                          {newAd.image_url && (
+                            <div className="md:col-span-2">
+                              <Label className="text-slate-300 mb-2 block">Preview</Label>
+                              <div className="relative bg-slate-800 rounded-xl p-4 h-64 overflow-hidden">
+                                <div 
+                                  className={`absolute border-2 border-cyan-400 rounded-lg overflow-hidden ${
+                                    newAd.position?.includes('top') ? 'top-2' : 
+                                    newAd.position?.includes('middle') ? 'top-1/2 -translate-y-1/2' : 'bottom-2'
+                                  } ${
+                                    newAd.position?.includes('left') ? 'left-2' : 
+                                    newAd.position?.includes('center') ? 'left-1/2 -translate-x-1/2' : 'right-2'
+                                  }`}
+                                  style={{ 
+                                    width: Math.min(newAd.width || 300, 200), 
+                                    height: Math.min(newAd.height || 250, 150) 
+                                  }}
+                                >
+                                  <img src={newAd.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                </div>
+                                <p className="absolute bottom-2 left-2 text-xs text-slate-500">Homepage Preview (scaled)</p>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
 
-                  {newAd.ad_type === 'popup' && (
-                    <>
-                      <div>
-                        <Label className="text-slate-300 mb-2 block">Wait Time (seconds)</Label>
-                        <Input
-                          type="number"
-                          value={newAd.delay_seconds}
-                          onChange={(e) => setNewAd({ ...newAd, delay_seconds: parseInt(e.target.value) })}
-                          placeholder="5"
-                          className="bg-white/5 border-white/10 text-white"
-                        />
-                        <p className="text-slate-500 text-xs mt-1">How long to wait before opening the popup</p>
-                      </div>
+                      {newAd.ad_type === 'popup' && (
+                        <>
+                          <div className="md:col-span-2">
+                            <Label className="text-slate-300 mb-2 block">Wait Times (seconds)</Label>
+                            <div className="flex gap-2 flex-wrap mb-2">
+                              {newAd.wait_times.map((time, i) => (
+                                <Badge key={i} className="bg-cyan-500/20 text-cyan-400 gap-1">
+                                  {time}s
+                                  <button 
+                                    type="button"
+                                    onClick={() => setNewAd({ 
+                                      ...newAd, 
+                                      wait_times: newAd.wait_times.filter((_, idx) => idx !== i) 
+                                    })}
+                                    className="ml-1 hover:text-red-400"
+                                  >
+                                    ×
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <Input
+                                type="number"
+                                value={waitTimeInput}
+                                onChange={(e) => setWaitTimeInput(e.target.value)}
+                                placeholder="Add wait time..."
+                                className="bg-white/5 border-white/10 text-white flex-1"
+                              />
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  if (waitTimeInput && parseInt(waitTimeInput) > 0) {
+                                    setNewAd({ 
+                                      ...newAd, 
+                                      wait_times: [...newAd.wait_times, parseInt(waitTimeInput)] 
+                                    });
+                                    setWaitTimeInput('');
+                                  }
+                                }}
+                                className="bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <p className="text-slate-500 text-xs mt-1">Add multiple wait times for multiple popup steps</p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label className="text-slate-300 mb-2 block">Wait Message</Label>
+                            <Input
+                              value={newAd.wait_message}
+                              onChange={(e) => setNewAd({ ...newAd, wait_message: e.target.value })}
+                              placeholder="Please wait while we prepare your link..."
+                              className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                            />
+                          </div>
+                        </>
+                      )}
+
                       <div className="md:col-span-2">
-                        <Label className="text-slate-300 mb-2 block">Wait Message</Label>
+                        <Label className="text-slate-300 mb-2 block">Target URL *</Label>
                         <Input
-                          value={newAd.wait_message}
-                          onChange={(e) => setNewAd({ ...newAd, wait_message: e.target.value })}
-                          placeholder="Please wait while we prepare your link..."
+                          value={newAd.target_url}
+                          onChange={(e) => setNewAd({ ...newAd, target_url: e.target.value })}
+                          placeholder="https://example.com"
                           className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                         />
-                        <p className="text-slate-500 text-xs mt-1">Message shown to users while waiting</p>
                       </div>
-                    </>
-                  )}
-
-                  <div>
-                    <Label className="text-slate-300 mb-2 block">Image URL</Label>
-                    <Input
-                      value={newAd.image_url}
-                      onChange={(e) => setNewAd({ ...newAd, image_url: e.target.value })}
-                      placeholder="https://example.com/ad-image.jpg"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-slate-300 mb-2 block">Target URL</Label>
-                    <Input
-                      value={newAd.target_url}
-                      onChange={(e) => setNewAd({ ...newAd, target_url: e.target.value })}
-                      placeholder="https://example.com"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                    />
-                  </div>
-                </div>
+                    </div>
 
                 <Button
                   onClick={() => createAdMutation.mutate(newAd)}
@@ -243,8 +333,10 @@ export default function AdminPanel() {
                           <div>
                             <p className="text-white font-medium truncate max-w-xs">{ad.target_url}</p>
                             <p className="text-slate-400 text-sm">
-                              {ad.ad_type === 'popup' ? `Wait ${ad.delay_seconds}s - "${ad.wait_message || 'Please wait...'}"` : ad.position}
-                            </p>
+                                  {ad.ad_type === 'popup' 
+                                    ? `Wait ${(ad.wait_times || [5]).join('s → ')}s - "${ad.wait_message || 'Please wait...'}"` 
+                                    : `${ad.position} (${ad.width || 300}x${ad.height || 250})`}
+                                </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
