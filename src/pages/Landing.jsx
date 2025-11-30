@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Link2, ArrowRight, Zap, Shield, BarChart3 } from "lucide-react";
+import { Link2, ArrowRight, Zap, Shield, BarChart3, Home } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 
@@ -11,6 +11,15 @@ export default function Landing() {
   const [shortenedUrl, setShortenedUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const auth = await base44.auth.isAuthenticated();
+      setIsLoggedIn(auth);
+    };
+    checkAuth();
+  }, []);
 
   const generateShortCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -66,13 +75,24 @@ export default function Landing() {
 
       {/* Header */}
       <header className="relative z-10 p-6">
-        <div className="flex items-center gap-2">
-          <img 
-            src="https://s3-eu-west-1.amazonaws.com/tpd/logos/5f5fa17054b2610001bcd1f9/0x0.png" 
-            alt="ShrinkPro" 
-            className="w-10 h-10 rounded-xl"
-          />
-          <span className="text-2xl font-bold text-white tracking-tight">ShrinkPro</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img 
+              src="https://s3-eu-west-1.amazonaws.com/tpd/logos/5f5fa17054b2610001bcd1f9/0x0.png" 
+              alt="ShrinkPro" 
+              className="w-10 h-10 rounded-xl"
+            />
+            <span className="text-2xl font-bold text-white tracking-tight">ShrinkPro</span>
+          </div>
+          {isLoggedIn && (
+            <Button
+              onClick={() => window.location.href = createPageUrl('Home')}
+              className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white"
+            >
+              <Home className="w-4 h-4 mr-2" />
+              Go to Dashboard
+            </Button>
+          )}
         </div>
       </header>
 
