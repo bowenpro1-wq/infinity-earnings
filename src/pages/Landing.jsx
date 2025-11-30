@@ -85,13 +85,14 @@ export default function Landing() {
             <span className="text-2xl font-bold text-white tracking-tight">ShrinkPro</span>
           </div>
           {isLoggedIn && (
-            <Button
-              onClick={() => window.location.href = createPageUrl('Home')}
-              className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go to Dashboard
-            </Button>
+            <a href={createPageUrl('Home')}>
+              <Button
+                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Go to Dashboard
+              </Button>
+            </a>
           )}
         </div>
       </header>
