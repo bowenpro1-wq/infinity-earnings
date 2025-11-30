@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link2, MousePointerClick, DollarSign, TrendingUp } from 'lucide-react';
+import { Link2, MousePointerClick, DollarSign, TrendingUp, Clock } from 'lucide-react';
 
 export default function Home() {
   const [logoClicks, setLogoClicks] = useState(0);
@@ -30,15 +30,37 @@ export default function Home() {
     }
   };
 
+  const [showWaitMessage, setShowWaitMessage] = useState(false);
+  const [waitMessage, setWaitMessage] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
   // Popup ad logic
   useEffect(() => {
     const showPopupAd = async () => {
       const popupAds = await base44.entities.Advertisement.filter({ ad_type: 'popup', is_active: true });
       if (popupAds.length > 0) {
         const ad = popupAds[0];
+        const delaySeconds = ad.delay_seconds || 5;
+        
+        setWaitMessage(ad.wait_message || 'Please wait...');
+        setCountdown(delaySeconds);
+        setShowWaitMessage(true);
+        
+        // Countdown timer
+        const countdownInterval = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        
         setTimeout(() => {
+          setShowWaitMessage(false);
           window.open(ad.target_url, '_blank');
-        }, (ad.delay_seconds || 5) * 1000);
+        }, delaySeconds * 1000);
       }
     };
     showPopupAd();

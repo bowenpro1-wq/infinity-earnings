@@ -24,6 +24,7 @@ export default function AdminPanel() {
     target_url: '',
     position: 'center',
     delay_seconds: 5,
+    wait_message: 'Please wait...',
     is_active: true
   });
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export default function AdminPanel() {
         target_url: '',
         position: 'center',
         delay_seconds: 5,
+        wait_message: 'Please wait...',
         is_active: true
       });
     }
@@ -165,15 +167,29 @@ export default function AdminPanel() {
                   )}
 
                   {newAd.ad_type === 'popup' && (
-                    <div>
-                      <Label className="text-slate-300 mb-2 block">Delay (seconds)</Label>
-                      <Input
-                        type="number"
-                        value={newAd.delay_seconds}
-                        onChange={(e) => setNewAd({ ...newAd, delay_seconds: parseInt(e.target.value) })}
-                        className="bg-white/5 border-white/10 text-white"
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <Label className="text-slate-300 mb-2 block">Wait Time (seconds)</Label>
+                        <Input
+                          type="number"
+                          value={newAd.delay_seconds}
+                          onChange={(e) => setNewAd({ ...newAd, delay_seconds: parseInt(e.target.value) })}
+                          placeholder="5"
+                          className="bg-white/5 border-white/10 text-white"
+                        />
+                        <p className="text-slate-500 text-xs mt-1">How long to wait before opening the popup</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label className="text-slate-300 mb-2 block">Wait Message</Label>
+                        <Input
+                          value={newAd.wait_message}
+                          onChange={(e) => setNewAd({ ...newAd, wait_message: e.target.value })}
+                          placeholder="Please wait while we prepare your link..."
+                          className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                        />
+                        <p className="text-slate-500 text-xs mt-1">Message shown to users while waiting</p>
+                      </div>
+                    </>
                   )}
 
                   <div>
@@ -227,7 +243,7 @@ export default function AdminPanel() {
                           <div>
                             <p className="text-white font-medium truncate max-w-xs">{ad.target_url}</p>
                             <p className="text-slate-400 text-sm">
-                              {ad.ad_type === 'popup' ? `${ad.delay_seconds}s delay` : ad.position}
+                              {ad.ad_type === 'popup' ? `Wait ${ad.delay_seconds}s - "${ad.wait_message || 'Please wait...'}"` : ad.position}
                             </p>
                           </div>
                         </div>
