@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link2, MousePointerClick, DollarSign, TrendingUp, Clock } from 'lucide-react';
+import { Link2, MousePointerClick, DollarSign, TrendingUp } from 'lucide-react';
 
 export default function Home() {
   const [logoClicks, setLogoClicks] = useState(0);
@@ -30,41 +30,7 @@ export default function Home() {
     }
   };
 
-  const [showWaitMessage, setShowWaitMessage] = useState(false);
-  const [waitMessage, setWaitMessage] = useState('');
-  const [countdown, setCountdown] = useState(0);
 
-  // Popup ad logic
-  useEffect(() => {
-    const showPopupAd = async () => {
-      const popupAds = await base44.entities.Advertisement.filter({ ad_type: 'popup', is_active: true });
-      if (popupAds.length > 0) {
-        const ad = popupAds[0];
-        const delaySeconds = ad.delay_seconds || 5;
-        
-        setWaitMessage(ad.wait_message || 'Please wait...');
-        setCountdown(delaySeconds);
-        setShowWaitMessage(true);
-        
-        // Countdown timer
-        const countdownInterval = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(countdownInterval);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        
-        setTimeout(() => {
-          setShowWaitMessage(false);
-          window.open(ad.target_url, '_blank');
-        }, delaySeconds * 1000);
-      }
-    };
-    showPopupAd();
-  }, []);
 
   const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
   const totalUniqueClicks = links.reduce((sum, link) => sum + (link.unique_clicks || 0), 0);
@@ -109,35 +75,46 @@ export default function Home() {
             })}
           </div>
 
-          {/* Homepage Ads */}
-          {ads.length > 0 && (
-            <div className="mb-10">
-              <h2 className="text-xl font-semibold text-white mb-4">Sponsored</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {ads.map((ad) => (
-                  <a
-                    key={ad.id}
-                    href={ad.target_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-xl border border-white/10 hover:border-white/20 transition-all"
-                  >
-                    {ad.image_url ? (
-                      <img 
-                        src={ad.image_url} 
-                        alt="Advertisement" 
-                        className="w-full h-48 object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
-                        <span className="text-white font-semibold">Visit Sponsor</span>
-                      </div>
-                    )}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Homepage Ads - Positioned */}
+          {ads.map((ad) => {
+            const positionClasses = {
+              'top-left': 'top-20 left-4',
+              'top-center': 'top-20 left-1/2 -translate-x-1/2',
+              'top-right': 'top-20 right-4',
+              'middle-left': 'top-1/2 -translate-y-1/2 left-4',
+              'middle-center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+              'middle-right': 'top-1/2 -translate-y-1/2 right-4',
+              'bottom-left': 'bottom-4 left-4',
+              'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
+              'bottom-right': 'bottom-4 right-4'
+            };
+            
+            return (
+              <a
+                key={ad.id}
+                href={ad.target_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`fixed z-40 overflow-hidden rounded-xl border border-white/20 hover:border-white/40 transition-all shadow-2xl ${positionClasses[ad.position] || 'bottom-4 right-4'}`}
+                style={{ 
+                  width: ad.width || 300, 
+                  height: ad.height || 250 
+                }}
+              >
+                {ad.image_url ? (
+                  <img 
+                    src={ad.image_url} 
+                    alt="Advertisement" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+                    <span className="text-white font-semibold">Visit Sponsor</span>
+                  </div>
+                )}
+              </a>
+            );
+          })}
 
           {/* Recent Links */}
           <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
@@ -168,21 +145,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Wait Message Overlay */}
-      {showWaitMessage && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <Card className="bg-white/10 border-white/20 backdrop-blur-xl max-w-md mx-4">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                <Clock className="w-8 h-8 text-white" />
-              </div>
-              <p className="text-xl text-white font-medium mb-4">{waitMessage}</p>
-              <div className="text-4xl font-bold text-cyan-400 mb-2">{countdown}</div>
-              <p className="text-slate-400 text-sm">seconds remaining</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+
     </div>
   );
 }
