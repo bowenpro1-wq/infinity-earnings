@@ -1,16 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link2, AlertCircle, Clock } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
+
+const EARNINGS_PER_UNIQUE_CLICK = 0.04;
 
 export default function Redirect() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(0);
   const [waitMessage, setWaitMessage] = useState('Please wait...');
-  const [targetUrl, setTargetUrl] = useState('');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [totalSteps, setTotalSteps] = useState(0);
+  const processedRef = useRef(false);
 
   useEffect(() => {
+    if (processedRef.current) return;
+    processedRef.current = true;
+
     const handleRedirect = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
@@ -37,37 +44,81 @@ export default function Redirect() {
         return;
       }
 
-      // Update click count
-      await base44.entities.ShortenedLink.update(link.id, {
-        clicks: (link.clicks || 0) + 1
-      });
+      // Get visitor IP for unique tracking
+      let visitorIp = 'unknown';
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        visitorIp = ipData.ip;
+      } catch (e) {
+        console.log('Could not get IP');
+      }
 
-      // Check for active popup ad to get wait time
+      // Check if this IP already clicked today
+      const today = new Date().toISOString().split('T')[0];
+      const existingClicks = await base44.entities.ClickLog.filter({ 
+        link_id: link.id, 
+        ip_address: visitorIp 
+      });
+      
+      const clickedToday = existingClicks.some(click => 
+        click.created_date && click.created_date.startsWith(today)
+      );
+
+      // Update click count
+      const updates = {
+        clicks: (link.clicks || 0) + 1
+      };
+
+      // If unique click today, add earnings
+      if (!clickedToday) {
+        updates.unique_clicks = (link.unique_clicks || 0) + 1;
+        updates.earnings = (link.earnings || 0) + EARNINGS_PER_UNIQUE_CLICK;
+        
+        // Log this click
+        await base44.entities.ClickLog.create({
+          link_id: link.id,
+          ip_address: visitorIp
+        });
+      }
+
+      await base44.entities.ShortenedLink.update(link.id, updates);
+
+      // Check for active popup ad
       const popupAds = await base44.entities.Advertisement.filter({ ad_type: 'popup', is_active: true });
       
       if (popupAds.length > 0) {
         const ad = popupAds[0];
-        const delaySeconds = ad.delay_seconds || 5;
+        const waitTimes = ad.wait_times || [5];
         
         setWaitMessage(ad.wait_message || 'Please wait...');
-        setCountdown(delaySeconds);
-        setTargetUrl(link.original_url);
+        setTotalSteps(waitTimes.length);
         setLoading(false);
 
-        // Start countdown
-        const countdownInterval = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(countdownInterval);
-              // Open ad in new tab
-              window.open(ad.target_url, '_blank');
-              // Redirect to original URL
-              window.location.href = link.original_url;
-              return 0;
-            }
-            return prev - 1;
+        // Process each wait time sequentially
+        for (let i = 0; i < waitTimes.length; i++) {
+          setCurrentStep(i + 1);
+          setCountdown(waitTimes[i]);
+          
+          // Countdown for this step
+          await new Promise(resolve => {
+            let remaining = waitTimes[i];
+            const interval = setInterval(() => {
+              remaining--;
+              setCountdown(remaining);
+              if (remaining <= 0) {
+                clearInterval(interval);
+                resolve();
+              }
+            }, 1000);
           });
-        }, 1000);
+          
+          // Open ad in new tab after each wait
+          window.open(ad.target_url, '_blank');
+        }
+        
+        // After all steps, redirect to original URL
+        window.location.href = link.original_url;
       } else {
         // No ad, redirect immediately
         window.location.href = link.original_url;
@@ -111,7 +162,10 @@ export default function Redirect() {
           <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
             <Clock className="w-10 h-10 text-white" />
           </div>
-          <p className="text-xl text-white font-medium mb-6">{waitMessage}</p>
+          <p className="text-xl text-white font-medium mb-4">{waitMessage}</p>
+          {totalSteps > 1 && (
+            <p className="text-slate-400 text-sm mb-4">Step {currentStep} of {totalSteps}</p>
+          )}
           <div className="text-6xl font-bold text-cyan-400 mb-2">{countdown}</div>
           <p className="text-slate-400 text-sm mb-6">seconds remaining</p>
           <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
@@ -120,6 +174,16 @@ export default function Redirect() {
               style={{ width: `${(countdown / 10) * 100}%` }}
             />
           </div>
+          {totalSteps > 1 && (
+            <div className="flex justify-center gap-2 mt-4">
+              {Array.from({ length: totalSteps }).map((_, i) => (
+                <div 
+                  key={i}
+                  className={`w-3 h-3 rounded-full ${i < currentStep ? 'bg-cyan-400' : 'bg-white/20'}`}
+                />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
