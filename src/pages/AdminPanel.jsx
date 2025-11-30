@@ -36,10 +36,17 @@ export default function AdminPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [copiedCode, setCopiedCode] = useState(null);
+
   // Queries
   const { data: ads = [] } = useQuery({
     queryKey: ['adminAds'],
     queryFn: () => base44.entities.Advertisement.list('-created_date')
+  });
+
+  const { data: promoCodes = [] } = useQuery({
+    queryKey: ['adminPromoCodes'],
+    queryFn: () => base44.entities.PromoCode.list('-created_date')
   });
 
   const { data: adRequests = [] } = useQuery({
@@ -50,11 +57,6 @@ export default function AdminPanel() {
   const { data: withdrawals = [] } = useQuery({
     queryKey: ['adminWithdrawals'],
     queryFn: () => base44.entities.WithdrawalRequest.list('-created_date')
-  });
-
-  const { data: promoCodes = [] } = useQuery({
-    queryKey: ['adminPromoCodes'],
-    queryFn: () => base44.entities.PromoCode.list('-created_date')
   });
 
   // Mutations
@@ -110,24 +112,22 @@ export default function AdminPanel() {
     onSuccess: () => queryClient.invalidateQueries(['adminWithdrawals'])
   });
 
-  const createPromoMutation = useMutation({
-    mutationFn: (code) => base44.entities.PromoCode.create({ code, is_used: false }),
+  const createPromoCodeMutation = useMutation({
+    mutationFn: async () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = 'PRO-';
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return base44.entities.PromoCode.create({ code, is_used: false });
+    },
     onSuccess: () => queryClient.invalidateQueries(['adminPromoCodes'])
   });
 
-  const deletePromoMutation = useMutation({
+  const deletePromoCodeMutation = useMutation({
     mutationFn: (id) => base44.entities.PromoCode.delete(id),
     onSuccess: () => queryClient.invalidateQueries(['adminPromoCodes'])
   });
-
-  const generatePromoCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = 'PRO-';
-    for (let i = 0; i < 8; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
 
   const filteredWithdrawals = searchPassword 
     ? withdrawals.filter(w => w.password?.toLowerCase().includes(searchPassword.toLowerCase()))
@@ -158,7 +158,7 @@ export default function AdminPanel() {
         </div>
 
         <Tabs defaultValue="ads" className="space-y-6">
-          <TabsList className="bg-white/5 border border-white/10">
+          <TabsList className="bg-white/5 border border-white/10 flex-wrap">
             <TabsTrigger value="ads" className="data-[state=active]:bg-white/10">
               <Megaphone className="w-4 h-4 mr-2" />
               Advertisements
@@ -173,7 +173,7 @@ export default function AdminPanel() {
             </TabsTrigger>
             <TabsTrigger value="promo" className="data-[state=active]:bg-white/10">
               <Crown className="w-4 h-4 mr-2" />
-              Promo Codes
+              Pro Codes
             </TabsTrigger>
           </TabsList>
 
@@ -762,50 +762,60 @@ export default function AdminPanel() {
           {/* Promo Codes Tab */}
           <TabsContent value="promo" className="space-y-6">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Crown className="w-5 h-5 text-yellow-400" />
-                  Pro Membership Codes ($30/month)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-white">Pro Membership Codes</CardTitle>
                 <Button
-                  onClick={() => createPromoMutation.mutate(generatePromoCode())}
+                  onClick={() => createPromoCodeMutation.mutate()}
                   className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Generate New Code
+                  Generate Code
                 </Button>
-
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400 text-sm mb-4">Each code is $30 and gives 1 month of Pro membership (earn $0.05/click instead of $0.04)</p>
                 {promoCodes.length === 0 ? (
-                  <p className="text-slate-400 text-center py-8">No promo codes created yet</p>
+                  <p className="text-slate-400 text-center py-8">No promo codes generated yet</p>
                 ) : (
                   <div className="space-y-3">
                     {promoCodes.map((code) => (
                       <div key={code.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
                         <div className="flex items-center gap-4">
-                          <code className="text-lg font-mono text-yellow-400">{code.code}</code>
-                          <Badge className={code.is_used ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}>
-                            {code.is_used ? 'Used' : 'Available'}
-                          </Badge>
-                          {code.used_by && (
-                            <span className="text-slate-400 text-sm">by {code.used_by}</span>
-                          )}
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${code.is_used ? 'bg-slate-500/20' : 'bg-yellow-500/20'}`}>
+                            <Crown className={`w-5 h-5 ${code.is_used ? 'text-slate-400' : 'text-yellow-400'}`} />
+                          </div>
+                          <div>
+                            <code className={`font-mono text-lg ${code.is_used ? 'text-slate-500' : 'text-yellow-400'}`}>
+                              {code.code}
+                            </code>
+                            {code.is_used && (
+                              <p className="text-slate-500 text-sm">Used by: {code.used_by}</p>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-slate-400 hover:text-white"
-                            onClick={() => navigator.clipboard.writeText(code.code)}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
+                          <Badge className={code.is_used ? 'bg-slate-500/20 text-slate-400' : 'bg-green-500/20 text-green-400'}>
+                            {code.is_used ? 'Used' : 'Available'}
+                          </Badge>
+                          {!code.is_used && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-slate-400 hover:text-white"
+                              onClick={() => {
+                                navigator.clipboard.writeText(code.code);
+                                setCopiedCode(code.id);
+                                setTimeout(() => setCopiedCode(null), 2000);
+                              }}
+                            >
+                              {copiedCode === code.id ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
                             className="text-red-400 hover:text-red-300"
-                            onClick={() => deletePromoMutation.mutate(code.id)}
+                            onClick={() => deletePromoCodeMutation.mutate(code.id)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>

@@ -11,6 +11,8 @@ import AdminLogin from './pages/AdminLogin';
 import AdminPanel from './pages/AdminPanel';
 import Verification from './pages/Verification';
 import Redirect from './pages/Redirect';
+import GoPro from './pages/GoPro';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -27,9 +29,11 @@ export const PAGES = {
     "AdminPanel": AdminPanel,
     "Verification": Verification,
     "Redirect": Redirect,
+    "GoPro": GoPro,
 }
 
 export const pagesConfig = {
     mainPage: "Landing",
     Pages: PAGES,
+    Layout: __Layout,
 };
