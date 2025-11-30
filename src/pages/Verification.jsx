@@ -50,18 +50,24 @@ export default function Verification() {
             className={`fixed z-40 overflow-hidden rounded-xl border border-white/20 hover:border-white/40 transition-all shadow-2xl ${positionClasses[ad.position] || 'bottom-4 right-4'}`}
             style={{ 
               width: ad.width || 300, 
-              height: ad.height || 250 
+              height: (ad.height || 250) + (ad.description ? 40 : 0)
             }}
           >
             {ad.image_url ? (
               <img 
                 src={ad.image_url} 
                 alt="Advertisement" 
-                className="w-full h-full object-cover"
+                className="w-full object-cover"
+                style={{ height: ad.height || 250 }}
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+              <div className="w-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 flex items-center justify-center" style={{ height: ad.height || 250 }}>
                 <span className="text-white font-semibold">Visit Sponsor</span>
+              </div>
+            )}
+            {ad.description && (
+              <div className="bg-black/80 px-3 py-2 text-center">
+                <p className="text-white text-sm">{ad.description}</p>
               </div>
             )}
           </a>

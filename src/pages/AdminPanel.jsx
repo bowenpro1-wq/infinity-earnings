@@ -21,6 +21,7 @@ export default function AdminPanel() {
   const [newAd, setNewAd] = useState({
     ad_type: 'popup',
     image_url: '',
+    description: '',
     target_url: '',
     position: 'bottom-right',
     width: 300,
@@ -57,6 +58,7 @@ export default function AdminPanel() {
       setNewAd({
         ad_type: 'popup',
         image_url: '',
+        description: '',
         target_url: '',
         position: 'bottom-right',
         width: 300,
@@ -80,7 +82,24 @@ export default function AdminPanel() {
   });
 
   const updateWithdrawalMutation = useMutation({
-    mutationFn: ({ id, status }) => base44.entities.WithdrawalRequest.update(id, { status }),
+    mutationFn: async ({ id, status, userEmail, amount }) => {
+      await base44.entities.WithdrawalRequest.update(id, { status });
+      // If declined, refund the money back to user's available balance
+      if (status === 'declined' && userEmail && amount) {
+        const userSettings = await base44.entities.UserSettings.filter({ user_email: userEmail });
+        if (userSettings.length > 0) {
+          const settings = userSettings[0];
+          await base44.entities.UserSettings.update(settings.id, {
+            withdrawn_amount: Math.max(0, (settings.withdrawn_amount || 0) - amount)
+          });
+        }
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries(['adminWithdrawals'])
+  });
+
+  const deleteWithdrawalMutation = useMutation({
+    mutationFn: (id) => base44.entities.WithdrawalRequest.delete(id),
     onSuccess: () => queryClient.invalidateQueries(['adminWithdrawals'])
   });
 
@@ -217,6 +236,16 @@ export default function AdminPanel() {
                             onChange={(e) => setNewAd({ ...newAd, height: parseInt(e.target.value) })}
                             placeholder="250"
                             className="bg-white/5 border-white/10 text-white"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <Label className="text-slate-300 mb-2 block">Description</Label>
+                          <Input
+                            value={newAd.description}
+                            onChange={(e) => setNewAd({ ...newAd, description: e.target.value })}
+                            placeholder="Want amazing deals? Visit our sponsor!"
+                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                           />
                         </div>
 
@@ -527,24 +556,38 @@ export default function AdminPanel() {
                           </a>
                         )}
 
-                        {withdrawal.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                              onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: 'completed' })}
-                            >
-                              <Check className="w-4 h-4 mr-1" /> Mark Completed
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                              onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: 'expired' })}
-                            >
-                              <X className="w-4 h-4 mr-1" /> Mark Expired
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex gap-2 flex-wrap">
+                          {withdrawal.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                                onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: 'completed' })}
+                              >
+                                <Check className="w-4 h-4 mr-1" /> Accept
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+                                onClick={() => updateWithdrawalMutation.mutate({ 
+                                  id: withdrawal.id, 
+                                  status: 'declined',
+                                  userEmail: withdrawal.user_email,
+                                  amount: withdrawal.amount
+                                })}
+                              >
+                                <X className="w-4 h-4 mr-1" /> Decline (Refund)
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            size="sm"
+                            className="bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                            onClick={() => deleteWithdrawalMutation.mutate(withdrawal.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" /> Delete
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
