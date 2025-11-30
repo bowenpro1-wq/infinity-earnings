@@ -67,9 +67,11 @@ export default function Landing() {
       {/* Header */}
       <header className="relative z-10 p-6">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-xl flex items-center justify-center">
-            <Link2 className="w-5 h-5 text-white" />
-          </div>
+          <img 
+            src="https://s3-eu-west-1.amazonaws.com/tpd/logos/5f5fa17054b2610001bcd1f9/0x0.png" 
+            alt="ShrinkPro" 
+            className="w-10 h-10 rounded-xl"
+          />
           <span className="text-2xl font-bold text-white tracking-tight">ShrinkPro</span>
         </div>
       </header>

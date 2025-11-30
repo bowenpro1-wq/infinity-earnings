@@ -4,7 +4,8 @@ import { Link2, AlertCircle, Clock } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const EARNINGS_PER_UNIQUE_CLICK = 0.04;
+const EARNINGS_REGULAR = 0.04;
+const EARNINGS_PRO = 0.05;
 
 export default function Redirect() {
   const [error, setError] = useState(null);
@@ -79,8 +80,15 @@ export default function Redirect() {
 
       // If unique click today, add earnings
       if (!clickedToday) {
+        // Check if link owner is Pro
+        let earningsRate = EARNINGS_REGULAR;
+        const ownerSettings = await base44.entities.UserSettings.filter({ user_email: link.created_by });
+        if (ownerSettings.length > 0 && ownerSettings[0].is_pro && new Date(ownerSettings[0].pro_expires) > new Date()) {
+          earningsRate = EARNINGS_PRO;
+        }
+        
         updates.unique_clicks = (link.unique_clicks || 0) + 1;
-        updates.earnings = (link.earnings || 0) + EARNINGS_PER_UNIQUE_CLICK;
+        updates.earnings = (link.earnings || 0) + earningsRate;
         
         // Log this click
         await base44.entities.ClickLog.create({

@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
   Shield, Megaphone, Wallet, Search, Plus, Trash2, 
-  Check, X, ExternalLink, ArrowLeft, Smartphone, Monitor
+  Check, X, ExternalLink, ArrowLeft, Smartphone, Monitor, Crown, Copy
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -50,6 +50,11 @@ export default function AdminPanel() {
   const { data: withdrawals = [] } = useQuery({
     queryKey: ['adminWithdrawals'],
     queryFn: () => base44.entities.WithdrawalRequest.list('-created_date')
+  });
+
+  const { data: promoCodes = [] } = useQuery({
+    queryKey: ['adminPromoCodes'],
+    queryFn: () => base44.entities.PromoCode.list('-created_date')
   });
 
   // Mutations
@@ -105,6 +110,25 @@ export default function AdminPanel() {
     onSuccess: () => queryClient.invalidateQueries(['adminWithdrawals'])
   });
 
+  const createPromoMutation = useMutation({
+    mutationFn: (code) => base44.entities.PromoCode.create({ code, is_used: false }),
+    onSuccess: () => queryClient.invalidateQueries(['adminPromoCodes'])
+  });
+
+  const deletePromoMutation = useMutation({
+    mutationFn: (id) => base44.entities.PromoCode.delete(id),
+    onSuccess: () => queryClient.invalidateQueries(['adminPromoCodes'])
+  });
+
+  const generatePromoCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = 'PRO-';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
   const filteredWithdrawals = searchPassword 
     ? withdrawals.filter(w => w.password?.toLowerCase().includes(searchPassword.toLowerCase()))
     : withdrawals;
@@ -146,6 +170,10 @@ export default function AdminPanel() {
             <TabsTrigger value="withdrawals" className="data-[state=active]:bg-white/10">
               <Wallet className="w-4 h-4 mr-2" />
               Withdrawals
+            </TabsTrigger>
+            <TabsTrigger value="promo" className="data-[state=active]:bg-white/10">
+              <Crown className="w-4 h-4 mr-2" />
+              Promo Codes
             </TabsTrigger>
           </TabsList>
 
@@ -721,6 +749,65 @@ export default function AdminPanel() {
                             onClick={() => deleteWithdrawalMutation.mutate(withdrawal.id)}
                           >
                             <Trash2 className="w-4 h-4 mr-1" /> Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Promo Codes Tab */}
+          <TabsContent value="promo" className="space-y-6">
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-yellow-400" />
+                  Pro Membership Codes ($30/month)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  onClick={() => createPromoMutation.mutate(generatePromoCode())}
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Generate New Code
+                </Button>
+
+                {promoCodes.length === 0 ? (
+                  <p className="text-slate-400 text-center py-8">No promo codes created yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {promoCodes.map((code) => (
+                      <div key={code.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                        <div className="flex items-center gap-4">
+                          <code className="text-lg font-mono text-yellow-400">{code.code}</code>
+                          <Badge className={code.is_used ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}>
+                            {code.is_used ? 'Used' : 'Available'}
+                          </Badge>
+                          {code.used_by && (
+                            <span className="text-slate-400 text-sm">by {code.used_by}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-slate-400 hover:text-white"
+                            onClick={() => navigator.clipboard.writeText(code.code)}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-400 hover:text-red-300"
+                            onClick={() => deletePromoMutation.mutate(code.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
