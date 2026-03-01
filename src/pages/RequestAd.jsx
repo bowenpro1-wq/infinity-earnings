@@ -68,6 +68,23 @@ export default function RequestAd() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+        <Sidebar currentPage="RequestAd" onLogoClick={handleLogoClick} />
+        <main className="lg:ml-72 p-6 lg:p-10 flex items-center justify-center">
+          <div className="text-center max-w-sm">
+            <div className="w-20 h-20 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Megaphone className="w-10 h-10 text-red-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Not Available for Admins</h2>
+            <p className="text-slate-400">Admins cannot submit ad requests. Use the Admin Panel to create ads directly.</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
       <Sidebar currentPage="RequestAd" onLogoClick={handleLogoClick} />
