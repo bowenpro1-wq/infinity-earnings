@@ -15,9 +15,7 @@ export default function Redirect() {
   const [currentStep, setCurrentStep] = useState(0);
   const [totalSteps, setTotalSteps] = useState(0);
   const [currentStepData, setCurrentStepData] = useState(null);
-  const [buttonClicked, setButtonClicked] = useState(false);
   const [waitingForButton, setWaitingForButton] = useState(false);
-  const [originalUrl, setOriginalUrl] = useState('');
   const [allSteps, setAllSteps] = useState([]);
   const processedRef = useRef(false);
   const resolveButtonRef = useRef(null);
@@ -25,152 +23,151 @@ export default function Redirect() {
   useEffect(() => {
     if (processedRef.current) return;
     processedRef.current = true;
-
-    const handleRedirect = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-
-      if (!code) {
-        setError('No link code provided');
-        setLoading(false);
-        return;
-      }
-
-      const links = await base44.entities.ShortenedLink.filter({ short_code: code });
-
-      if (links.length === 0) {
-        setError('Link not found');
-        setLoading(false);
-        return;
-      }
-
-      const link = links[0];
-
-      if (!link.is_active) {
-        setError('This link is no longer active');
-        setLoading(false);
-        return;
-      }
-
-      // Get visitor IP for unique tracking
-      let visitorIp = 'unknown';
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        visitorIp = ipData.ip;
-      } catch (e) {
-        console.log('Could not get IP');
-      }
-
-      // Check if this IP already clicked today
-      const today = new Date().toISOString().split('T')[0];
-      const existingClicks = await base44.entities.ClickLog.filter({ 
-        link_id: link.id, 
-        ip_address: visitorIp 
-      });
-      
-      const clickedToday = existingClicks.some(click => 
-        click.created_date && click.created_date.startsWith(today)
-      );
-
-      // Check if link owner is Pro
-      let earningsRate = EARNINGS_PER_UNIQUE_CLICK;
-      if (link.created_by) {
-        const ownerSettings = await base44.entities.UserSettings.filter({ user_email: link.created_by });
-        if (ownerSettings.length > 0 && ownerSettings[0].is_pro && new Date(ownerSettings[0].pro_expires) > new Date()) {
-          earningsRate = PRO_EARNINGS_PER_UNIQUE_CLICK;
-        }
-      }
-
-      // Update click count
-      const updates = {
-        clicks: (link.clicks || 0) + 1
-      };
-
-      // If unique click today, add earnings
-      if (!clickedToday) {
-        updates.unique_clicks = (link.unique_clicks || 0) + 1;
-        updates.earnings = (link.earnings || 0) + earningsRate;
-        
-        // Log this click
-        await base44.entities.ClickLog.create({
-          link_id: link.id,
-          ip_address: visitorIp
-        });
-      }
-
-      await base44.entities.ShortenedLink.update(link.id, updates);
-
-      // Check for active popup ad
-      const popupAds = await base44.entities.Advertisement.filter({ ad_type: 'popup', is_active: true });
-      
-      if (popupAds.length > 0) {
-        const ad = popupAds[0];
-        const waitSteps = ad.wait_steps || [{ wait_time: 5, target_url: ad.target_url }];
-        
-        setWaitMessage(ad.wait_message || 'Please wait...');
-        setTotalSteps(waitSteps.length);
-        setAllSteps(waitSteps);
-        setOriginalUrl(link.original_url);
-        setLoading(false);
-
-        // Process each step sequentially
-        for (let i = 0; i < waitSteps.length; i++) {
-          const step = waitSteps[i];
-          setCurrentStep(i + 1);
-          setCurrentStepData(step);
-          setCountdown(step.wait_time || 5);
-          setButtonClicked(false);
-          setWaitingForButton(false);
-          
-          // Countdown for this step
-          await new Promise(resolve => {
-            let remaining = step.wait_time || 5;
-            const interval = setInterval(() => {
-              remaining--;
-              setCountdown(remaining);
-              if (remaining <= 0) {
-                clearInterval(interval);
-                resolve();
-              }
-            }, 1000);
-          });
-          
-          // Open target URL in new tab
-          if (step.target_url) {
-            window.open(step.target_url, '_blank');
-          }
-          
-          // If button is required, wait for click
-          if (step.require_button && step.button_text) {
-            setWaitingForButton(true);
-            await new Promise(resolve => {
-              resolveButtonRef.current = resolve;
-            });
-            setWaitingForButton(false);
-          }
-        }
-        
-        // After all steps, redirect to original URL
-        window.location.href = link.original_url;
-      } else {
-        // No ad, redirect immediately
-        window.location.href = link.original_url;
-      }
-    };
-
     handleRedirect();
   }, []);
 
+  const handleRedirect = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    // Support both ?code= and /v?= (custom alias via query param "=")
+    const code = urlParams.get('code');
+    const alias = urlParams.get('='); // /v?=myalias maps to ?== myalias
+
+    let link = null;
+
+    if (code) {
+      const links = await base44.entities.ShortenedLink.filter({ short_code: code });
+      link = links[0] || null;
+    } else if (alias) {
+      const links = await base44.entities.ShortenedLink.filter({ custom_alias: alias });
+      link = links[0] || null;
+    }
+
+    if (!link) {
+      setError('Link not found');
+      setLoading(false);
+      return;
+    }
+
+    if (!link.is_active) {
+      setError('This link is no longer active');
+      setLoading(false);
+      return;
+    }
+
+    // Check expiry
+    if (link.advanced_settings?.expiry_date && new Date(link.advanced_settings.expiry_date) < new Date()) {
+      setError('This link has expired');
+      setLoading(false);
+      return;
+    }
+
+    // Password protection
+    if (link.advanced_settings?.password_protected && link.advanced_settings?.password) {
+      const enteredPw = prompt('This link is password protected. Enter password:');
+      if (enteredPw !== link.advanced_settings.password) {
+        setError('Incorrect password');
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Get visitor IP
+    let visitorIp = 'unknown';
+    try {
+      const ipResponse = await fetch('https://api.ipify.org?format=json');
+      const ipData = await ipResponse.json();
+      visitorIp = ipData.ip;
+    } catch (e) { }
+
+    // Check app settings for IP limit
+    let maxEarnsPerDay = 1;
+    let ipLimitEnabled = true;
+    try {
+      const settings = await base44.entities.AppSettings.filter({ setting_key: 'global' });
+      if (settings.length > 0) {
+        ipLimitEnabled = settings[0].ip_limit_enabled !== false;
+        maxEarnsPerDay = settings[0].max_earns_per_ip_per_day || 1;
+      }
+    } catch(e) {}
+
+    // Count today's earnings for this IP
+    const today = new Date().toISOString().split('T')[0];
+    let earnsToday = 0;
+    let clickedThisLink = false;
+
+    if (ipLimitEnabled) {
+      const existingClicks = await base44.entities.ClickLog.filter({ ip_address: visitorIp });
+      const todayClicks = existingClicks.filter(c => c.created_date && c.created_date.startsWith(today));
+      earnsToday = todayClicks.length;
+      clickedThisLink = existingClicks.some(c => c.link_id === link.id && c.created_date && c.created_date.startsWith(today));
+    }
+
+    // Determine earnings
+    let earningsRate = EARNINGS_PER_UNIQUE_CLICK;
+    if (link.created_by) {
+      const ownerSettings = await base44.entities.UserSettings.filter({ user_email: link.created_by });
+      if (ownerSettings.length > 0 && ownerSettings[0].is_pro && new Date(ownerSettings[0].pro_expires) > new Date()) {
+        earningsRate = PRO_EARNINGS_PER_UNIQUE_CLICK;
+      }
+    }
+
+    const canEarn = !ipLimitEnabled || (!clickedThisLink && earnsToday < maxEarnsPerDay);
+
+    const updates = { clicks: (link.clicks || 0) + 1 };
+    if (canEarn) {
+      updates.unique_clicks = (link.unique_clicks || 0) + 1;
+      updates.earnings = (link.earnings || 0) + earningsRate;
+      await base44.entities.ClickLog.create({ link_id: link.id, ip_address: visitorIp });
+    }
+
+    await base44.entities.ShortenedLink.update(link.id, updates);
+
+    // Check for active popup ad
+    const popupAds = await base44.entities.Advertisement.filter({ ad_type: 'popup', is_active: true });
+
+    if (popupAds.length > 0) {
+      const ad = popupAds[0];
+      const waitSteps = ad.wait_steps || [{ wait_time: 5, target_url: ad.target_url }];
+
+      setWaitMessage(ad.wait_message || 'Please wait...');
+      setTotalSteps(waitSteps.length);
+      setAllSteps(waitSteps);
+      setLoading(false);
+
+      for (let i = 0; i < waitSteps.length; i++) {
+        const step = waitSteps[i];
+        setCurrentStep(i + 1);
+        setCurrentStepData(step);
+        setCountdown(step.wait_time || 5);
+        setWaitingForButton(false);
+
+        await new Promise(resolve => {
+          let remaining = step.wait_time || 5;
+          const interval = setInterval(() => {
+            remaining--;
+            setCountdown(remaining);
+            if (remaining <= 0) { clearInterval(interval); resolve(); }
+          }, 1000);
+        });
+
+        if (step.target_url) window.open(step.target_url, '_blank');
+
+        if (step.require_button && step.button_text) {
+          setWaitingForButton(true);
+          await new Promise(resolve => { resolveButtonRef.current = resolve; });
+          setWaitingForButton(false);
+        }
+      }
+      window.location.href = link.original_url;
+    } else {
+      window.location.href = link.original_url;
+    }
+  };
+
   const handleButtonClick = () => {
-    if (currentStepData?.button_url) {
-      window.open(currentStepData.button_url, '_blank');
-    }
-    setButtonClicked(true);
-    if (resolveButtonRef.current) {
-      resolveButtonRef.current();
-      resolveButtonRef.current = null;
-    }
+    if (currentStepData?.button_url) window.open(currentStepData.button_url, '_blank');
+    if (resolveButtonRef.current) { resolveButtonRef.current(); resolveButtonRef.current = null; }
+    setWaitingForButton(false);
   };
 
   if (error) {
@@ -208,17 +205,12 @@ export default function Redirect() {
             <Clock className="w-10 h-10 text-white" />
           </div>
           <p className="text-xl text-white font-medium mb-4">{waitMessage}</p>
-          {totalSteps > 1 && (
-            <p className="text-slate-400 text-sm mb-4">Step {currentStep} of {totalSteps}</p>
-          )}
-          
+          {totalSteps > 1 && <p className="text-slate-400 text-sm mb-4">Step {currentStep} of {totalSteps}</p>}
+
           {waitingForButton ? (
             <div className="space-y-4">
               <p className="text-yellow-400 text-sm">Click the button below to continue</p>
-              <Button
-                onClick={handleButtonClick}
-                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold px-8 py-3"
-              >
+              <Button onClick={handleButtonClick} className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold px-8 py-3">
                 {currentStepData?.button_text || 'Continue'}
               </Button>
             </div>
@@ -227,36 +219,20 @@ export default function Redirect() {
               <div className="text-6xl font-bold text-cyan-400 mb-2">{countdown}</div>
               <p className="text-slate-400 text-sm mb-6">seconds remaining</p>
               <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-1000"
-                  style={{ width: `${(countdown / (currentStepData?.wait_time || 10)) * 100}%` }}
-                />
+                <div className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-1000" style={{ width: `${(countdown / (currentStepData?.wait_time || 10)) * 100}%` }} />
               </div>
-              
-              {/* Show optional button during countdown */}
               {currentStepData?.button_text && !currentStepData?.require_button && countdown > 0 && (
-                <Button
-                  onClick={() => {
-                    if (currentStepData?.button_url) {
-                      window.open(currentStepData.button_url, '_blank');
-                    }
-                  }}
-                  variant="outline"
-                  className="mt-4 border-white/30 text-white hover:bg-white/10"
-                >
+                <Button onClick={() => { if (currentStepData?.button_url) window.open(currentStepData.button_url, '_blank'); }} variant="outline" className="mt-4 border-white/30 text-white hover:bg-white/10">
                   {currentStepData.button_text}
                 </Button>
               )}
             </>
           )}
-          
+
           {totalSteps > 1 && (
             <div className="flex justify-center gap-2 mt-4">
               {Array.from({ length: totalSteps }).map((_, i) => (
-                <div 
-                  key={i}
-                  className={`w-3 h-3 rounded-full ${i < currentStep ? 'bg-cyan-400' : 'bg-white/20'}`}
-                />
+                <div key={i} className={`w-3 h-3 rounded-full ${i < currentStep ? 'bg-cyan-400' : 'bg-white/20'}`} />
               ))}
             </div>
           )}
