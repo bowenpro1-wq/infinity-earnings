@@ -59,9 +59,9 @@ import RequestAd from './pages/RequestAd';
 import Settings from './pages/Settings';
 import ShortenNew from './pages/ShortenNew';
 import Statistics from './pages/Statistics';
+import V from './pages/V';
 import Verification from './pages/Verification';
 import Withdraw from './pages/Withdraw';
-import V from './pages/V';
 import __Layout from './Layout.jsx';
 
 
@@ -78,9 +78,9 @@ export const PAGES = {
     "Settings": Settings,
     "ShortenNew": ShortenNew,
     "Statistics": Statistics,
+    "V": V,
     "Verification": Verification,
     "Withdraw": Withdraw,
-    "V": V,
 }
 
 export const pagesConfig = {
