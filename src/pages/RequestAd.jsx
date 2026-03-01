@@ -15,6 +15,16 @@ export default function RequestAd() {
   const [logoClicks, setLogoClicks] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  React.useEffect(() => {
+    const checkAdmin = async () => {
+      const user = await base44.auth.me();
+      if (user?.role === 'admin') setIsAdmin(true);
+    };
+    checkAdmin();
+  }, []);
+
   const [formData, setFormData] = useState({
     name: '',
     birthDate: '',
