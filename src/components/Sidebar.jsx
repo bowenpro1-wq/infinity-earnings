@@ -1,34 +1,34 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { 
-  Link2, 
-  PlusCircle, 
-  Wallet, 
-  Settings, 
-  Megaphone, 
-  BarChart3, 
+import {
+  Link2,
+  PlusCircle,
+  Wallet,
+  Settings,
+  Megaphone,
+  BarChart3,
   HelpCircle,
   Menu,
   X,
   ChevronRight,
-  Crown
-} from 'lucide-react';
+  Crown } from
+'lucide-react';
 import { Button } from "@/components/ui/button";
 
 export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
-    { name: 'MyLinks', label: 'My Shortened Links', icon: Link2 },
-    { name: 'ShortenNew', label: 'Shorten New Link', icon: PlusCircle },
-    { name: 'Withdraw', label: 'Withdraw Payments', icon: Wallet },
-    { name: 'GoPro', label: 'Go Pro', icon: Crown, highlight: true },
-    { name: 'Settings', label: 'Settings', icon: Settings },
-    { name: 'RequestAd', label: 'Request an Ad', icon: Megaphone },
-    { name: 'Statistics', label: 'Statistics', icon: BarChart3 },
-    { name: 'Help', label: 'Help', icon: HelpCircle },
-  ];
+  { name: 'MyLinks', label: 'My Shortened Links', icon: Link2 },
+  { name: 'ShortenNew', label: 'Shorten New Link', icon: PlusCircle },
+  { name: 'Withdraw', label: 'Withdraw Payments', icon: Wallet },
+  { name: 'GoPro', label: 'Go Pro', icon: Crown, highlight: true },
+  { name: 'Settings', label: 'Settings', icon: Settings },
+  { name: 'RequestAd', label: 'Request an Ad', icon: Megaphone },
+  { name: 'Statistics', label: 'Statistics', icon: BarChart3 },
+  { name: 'Help', label: 'Help', icon: HelpCircle }];
+
 
   return (
     <>
@@ -37,18 +37,18 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
         variant="ghost"
         size="icon"
         className="fixed top-4 left-4 z-50 lg:hidden text-white"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+        onClick={() => setIsOpen(!isOpen)}>
+
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </Button>
 
       {/* Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen &&
+      <div
+        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        onClick={() => setIsOpen(false)} />
+
+      }
 
       {/* Sidebar */}
       <aside className={`
@@ -59,15 +59,15 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
       `}>
         <div className="p-6">
           {/* Logo */}
-          <button 
+          <button
             onClick={onLogoClick}
-            className="flex items-center gap-3 mb-10 cursor-pointer group"
-          >
-            <img 
-              src="https://s3-eu-west-1.amazonaws.com/tpd/logos/5f5fa17054b2610001bcd1f9/0x0.png" 
-              alt="ShrinkPro" 
-              className="w-12 h-12 rounded-xl transition-transform group-hover:scale-105"
-            />
+            className="flex items-center gap-3 mb-10 cursor-pointer group">
+
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69a4226c21a2061988604e4c/7c596a018_download.gif"
+
+            alt="ShrinkPro" className="w-12 h-12 rounded-xl transition-transform group-hover:scale-105" />
+
+
             <div>
               <span className="text-xl font-bold text-white block">ShrinkPro</span>
               <span className="text-xs text-slate-500">URL Shortener</span>
@@ -79,7 +79,7 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.name;
-              
+
               return (
                 <Link
                   key={item.name}
@@ -87,19 +87,19 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
                   onClick={() => setIsOpen(false)}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                    ${isActive 
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-white/10' 
-                      : item.highlight 
-                        ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 border border-yellow-500/20'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }
-                  `}
-                >
+                    ${isActive ?
+                  'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-white/10' :
+                  item.highlight ?
+                  'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 border border-yellow-500/20' :
+                  'text-slate-400 hover:text-white hover:bg-white/5'}
+                  `
+                  }>
+
                   <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : item.highlight ? 'text-yellow-400' : ''}`} />
                   <span className="font-medium">{item.label}</span>
                   {isActive && <ChevronRight className="w-4 h-4 ml-auto text-cyan-400" />}
-                </Link>
-              );
+                </Link>);
+
             })}
           </nav>
         </div>
@@ -112,6 +112,6 @@ export default function Sidebar({ currentPage, onLogoClick, clickCount }) {
           </div>
         </div>
       </aside>
-    </>
-  );
+    </>);
+
 }
