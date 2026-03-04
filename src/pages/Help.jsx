@@ -48,34 +48,34 @@ export default function Help() {
               {/* Contact Options */}
               <div className="space-y-4">
                 {/* Primary Email */}
-                <a
+                <a 
                   href="mailto:starproduce@atomicmail.io"
-                  className="flex items-center justify-between p-5 bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 rounded-xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all group">
-
+                  className="flex items-center justify-between p-5 bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 rounded-xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all group"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center">
                       <Mail className="w-6 h-6 text-cyan-400" />
                     </div>
                     <div className="text-left">
                       <p className="text-white font-medium">Primary Email</p>
-                      <p className="text-cyan-400">infinitytech@atomicmail.io</p>
+                      <p className="text-cyan-400">starproduce@atomicmail.io</p>
                     </div>
                   </div>
                   <ExternalLink className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
                 </a>
 
                 {/* Secondary Email */}
-                <a
+                <a 
                   href="mailto:starproducer@atomicmail.io"
-                  className="flex items-center justify-between p-5 bg-gradient-to-r from-purple-500/20 to-purple-500/10 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-all group">
-
+                  className="flex items-center justify-between p-5 bg-gradient-to-r from-purple-500/20 to-purple-500/10 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-all group"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
                       <Mail className="w-6 h-6 text-purple-400" />
                     </div>
                     <div className="text-left">
                       <p className="text-white font-medium">Secondary Email</p>
-                      <p className="text-purple-400">49855744@qq.com</p>
+                      <p className="text-purple-400">starproducer@atomicmail.io</p>
                     </div>
                   </div>
                   <ExternalLink className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
@@ -84,8 +84,8 @@ export default function Help() {
 
               {/* Additional Info */}
               <div className="mt-8 p-4 bg-white/5 rounded-xl">
-                <p className="text-slate-400 text-sm">We typically respond within 10-48 hours. Please include your account email and a detailed description of your issue.
-
+                <p className="text-slate-400 text-sm">
+                  We typically respond within 24-48 hours. Please include your account email and a detailed description of your issue.
                 </p>
               </div>
             </CardContent>
@@ -113,6 +113,6 @@ export default function Help() {
           </Card>
         </div>
       </main>
-    </div>);
-
+    </div>
+  );
 }

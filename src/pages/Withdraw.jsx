@@ -47,9 +47,9 @@ export default function Withdraw() {
   };
 
   const totalEarnings = links.reduce((sum, link) => sum + (link.earnings || 0), 0);
-  const withdrawnAmount = withdrawals.
-  filter((w) => w.status === 'completed' || w.status === 'pending').
-  reduce((sum, w) => sum + (w.amount || 0), 0);
+  const withdrawnAmount = withdrawals
+    .filter(w => w.status === 'completed' || w.status === 'pending')
+    .reduce((sum, w) => sum + (w.amount || 0), 0);
   const availableBalance = totalEarnings - withdrawnAmount;
 
   const generatePassword = () => {
@@ -119,36 +119,36 @@ export default function Withdraw() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="bg-white/5 rounded-xl p-4">
                   <p className="text-slate-400">Total Earned</p>
-                  <p className="text-white text-4xl font-semibold text-left normal-case">${totalEarnings.toFixed(2)}</p>
+                  <p className="text-xl font-semibold text-white">${totalEarnings.toFixed(2)}</p>
                 </div>
                 <div className="bg-white/5 rounded-xl p-4">
                   <p className="text-slate-400">Withdrawn</p>
-                  <p className="text-white text-4xl font-bold">${withdrawnAmount.toFixed(2)}</p>
+                  <p className="text-xl font-semibold text-white">${withdrawnAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {!withdrawalResult ?
-          <>
+          {!withdrawalResult ? (
+            <>
               {/* Withdraw Button */}
               <Button
-              onClick={handleWithdraw}
-              disabled={availableBalance <= 0}
-              className="w-full h-14 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-xl text-lg mb-6">
-
+                onClick={handleWithdraw}
+                disabled={availableBalance <= 0}
+                className="w-full h-14 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-xl text-lg mb-6"
+              >
                 Request Withdrawal
               </Button>
 
-              {availableBalance <= 0 &&
-            <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-400">
+              {availableBalance <= 0 && (
+                <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-400">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   <p className="text-sm">You need to earn some money first before withdrawing.</p>
                 </div>
-            }
-            </> :
-
-          <Card className="bg-white/5 border-white/10 backdrop-blur-xl mb-6">
+              )}
+            </>
+          ) : (
+            <Card className="bg-white/5 border-white/10 backdrop-blur-xl mb-6">
               <CardContent className="p-6 space-y-6">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -166,11 +166,11 @@ export default function Withdraw() {
                         {withdrawalResult.url}
                       </code>
                       <Button
-                      variant="outline"
-                      size="icon"
-                      className="border-white/10 text-slate-400"
-                      onClick={() => copyToClipboard(withdrawalResult.url)}>
-
+                        variant="outline"
+                        size="icon"
+                        className="border-white/10 text-slate-400"
+                        onClick={() => copyToClipboard(withdrawalResult.url)}
+                      >
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
@@ -183,11 +183,11 @@ export default function Withdraw() {
                         {withdrawalResult.password}
                       </code>
                       <Button
-                      variant="outline"
-                      size="icon"
-                      className="border-white/10 text-slate-400"
-                      onClick={() => copyToClipboard(withdrawalResult.password)}>
-
+                        variant="outline"
+                        size="icon"
+                        className="border-white/10 text-slate-400"
+                        onClick={() => copyToClipboard(withdrawalResult.password)}
+                      >
                         <Copy className="w-4 h-4" />
                       </Button>
                     </div>
@@ -205,7 +205,7 @@ export default function Withdraw() {
                 </div>
               </CardContent>
             </Card>
-          }
+          )}
 
           {/* Contact Info */}
           <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
@@ -229,13 +229,13 @@ export default function Withdraw() {
                 </div>
                 <div>
                   <p className="text-white font-medium">Email</p>
-                  <p className="text-slate-400">infinitytech@atomicmail.io</p>
+                  <p className="text-slate-400">starproduce@atomicmail.io</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </main>
-    </div>);
-
+    </div>
+  );
 }
